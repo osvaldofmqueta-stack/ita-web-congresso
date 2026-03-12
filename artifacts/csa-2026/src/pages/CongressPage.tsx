@@ -261,19 +261,29 @@ function Navbar() {
           </div>
 
           <div className="hidden md:flex items-center gap-6">
-            {["Início", "Sobre", "Eixos Temáticos", "Download"].map((item) => (
+            {[
+              { label: "Início", href: "#inicio" },
+              { label: "Sobre", href: "#sobre" },
+              { label: "Eixos Temáticos", href: "#eixos" },
+              { label: "Download", href: "#download" },
+            ].map((item) => (
               <a
-                key={item}
-                href={`#${encodeURIComponent(item.toLowerCase().replace(/\s+/g, "-"))}`}
+                key={item.label}
+                href={item.href}
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: "smooth" });
+                }}
                 className="text-white/80 hover:text-yellow-300 text-sm font-medium transition-colors duration-200"
               >
-                {item}
+                {item.label}
               </a>
             ))}
           </div>
 
           <a
             href="#download"
+            onClick={(e) => { e.preventDefault(); document.getElementById("download")?.scrollIntoView({ behavior: "smooth" }); }}
             className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-[#0a1437] gold-gradient shadow-lg hover:scale-105 transition-transform"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -310,7 +320,7 @@ function HeroSection({ onDownloadClick }: { onDownloadClick: () => void }) {
   }, []);
 
   return (
-    <section id="início" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+    <section id="inicio" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background image */}
       <div className="absolute inset-0">
         <img src="/instituto2.jpeg" alt={INSTITUTE} className="w-full h-full object-cover object-center" />
@@ -394,6 +404,7 @@ function HeroSection({ onDownloadClick }: { onDownloadClick: () => void }) {
           </button>
           <a
             href="#sobre"
+            onClick={(e) => { e.preventDefault(); document.getElementById("sobre")?.scrollIntoView({ behavior: "smooth" }); }}
             className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-base font-bold text-white border-2 border-white/30 hover:border-yellow-400/60 hover:bg-white/10 transition-all backdrop-blur-sm"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
@@ -502,7 +513,7 @@ function AboutSection() {
 function ThematicAxesSection() {
   return (
     <section
-      id="eixos-temáticos"
+      id="eixos"
       className="py-24 relative overflow-hidden"
       style={{ background: "linear-gradient(135deg, #0a1437 0%, #1a2d6e 50%, #0a1437 100%)" }}
     >
@@ -681,7 +692,7 @@ function DownloadSection({ onDownloadClick }: { onDownloadClick: () => void }) {
               store: "Google Play Store",
               icon: (
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
-                  <path d="M3 18v-1l1-1V9l-1-1V7h4.5C9.43 7 11 8.57 11 10.5c0 1.13-.56 2.12-1.41 2.74C10.52 14 11.5 15.39 11.5 17c0 2.21-1.79 4-4 4H3v-1l1-1zM5.5 12h2c.83 0 1.5-.67 1.5-1.5S8.33 9 7.5 9h-2v3zm0 7h2.5c.83 0 1.5-.67 1.5-1.5S8.83 16 8 16H5.5v3zM16 7h4v2h-1.5v10h-1V9H16V7z"/>
+                  <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48C13.85 1.23 12.95 1 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.31 1.31C6.97 3.26 6 5.01 6 7h12c0-1.99-.97-3.75-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/>
                 </svg>
               ),
               bg: "linear-gradient(135deg, #1a1a2e, #16213e)",
@@ -725,8 +736,8 @@ function DownloadSection({ onDownloadClick }: { onDownloadClick: () => void }) {
             <div className="grid md:grid-cols-3 gap-6">
               {[
                 { step: "1", icon: "📲", title: "Descarregue a App", desc: "Instale a aplicação CSA 2026 no seu dispositivo Android ou iOS" },
-                { step: "2", icon: "📝", title: "Registe-se", desc: "Crie a sua conta com os seus dados académicos ou profissionais" },
-                { step: "3", icon: "🚀", title: "Submeta & Participe", desc: "Inscreva-se e submeta as suas apresentações directamente na app" },
+                { step: "2", icon: "🪪", title: "Registe-se", desc: "Crie a sua conta com os seus dados académicos ou profissionais" },
+                { step: "3", icon: "📤", title: "Submeta & Participe", desc: "Inscreva-se e submeta as suas apresentações directamente na app" },
               ].map((item) => (
                 <div key={item.step} className="text-center">
                   <div className="relative inline-block mb-4">
