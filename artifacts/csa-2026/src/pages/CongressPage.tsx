@@ -233,8 +233,20 @@ function ComingSoonToast({
 
 /* ─── Navbar ──────────────────────────────────────────────────────────────── */
 
+const NAV_LINKS = [
+  { label: "Início", href: "inicio" },
+  { label: "Sobre", href: "sobre" },
+  { label: "Eixos Temáticos", href: "eixos" },
+  { label: "Download", href: "download" },
+];
+
+function scrollTo(id: string) {
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+}
+
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     const handler = () => setScrolled(window.scrollY > 40);
@@ -242,16 +254,25 @@ function Navbar() {
     return () => window.removeEventListener("scroll", handler);
   }, []);
 
+  // Close menu on outside click
+  useEffect(() => {
+    if (!menuOpen) return;
+    const handler = () => setMenuOpen(false);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
+  }, [menuOpen]);
+
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? "bg-[#0a1437]/95 backdrop-blur-md shadow-xl"
+        scrolled || menuOpen
+          ? "bg-[#0a1437]/97 backdrop-blur-md shadow-xl"
           : "bg-transparent"
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
+          {/* Logo */}
           <div className="flex items-center gap-3">
             <img src="/csa-logo.png" alt="CSA Logo" className="h-10 w-10 object-contain" />
             <div>
@@ -260,20 +281,13 @@ function Navbar() {
             </div>
           </div>
 
+          {/* Desktop links */}
           <div className="hidden md:flex items-center gap-6">
-            {[
-              { label: "Início", href: "#inicio" },
-              { label: "Sobre", href: "#sobre" },
-              { label: "Eixos Temáticos", href: "#eixos" },
-              { label: "Download", href: "#download" },
-            ].map((item) => (
+            {NAV_LINKS.map((item) => (
               <a
                 key={item.label}
-                href={item.href}
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: "smooth" });
-                }}
+                href={`#${item.href}`}
+                onClick={(e) => { e.preventDefault(); scrollTo(item.href); }}
                 className="text-white/80 hover:text-yellow-300 text-sm font-medium transition-colors duration-200"
               >
                 {item.label}
@@ -281,9 +295,10 @@ function Navbar() {
             ))}
           </div>
 
+          {/* Desktop CTA */}
           <a
             href="#download"
-            onClick={(e) => { e.preventDefault(); document.getElementById("download")?.scrollIntoView({ behavior: "smooth" }); }}
+            onClick={(e) => { e.preventDefault(); scrollTo("download"); }}
             className="hidden md:inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold text-[#0a1437] gold-gradient shadow-lg hover:scale-105 transition-transform"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -291,6 +306,43 @@ function Navbar() {
             </svg>
             Download App
           </a>
+
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-white/10 transition-colors"
+            onClick={(e) => { e.stopPropagation(); setMenuOpen((v) => !v); }}
+            aria-label="Menu"
+          >
+            <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? "rotate-45 translate-y-2" : ""}`} />
+            <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? "opacity-0" : ""}`} />
+            <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${menuOpen ? "-rotate-45 -translate-y-2" : ""}`} />
+          </button>
+        </div>
+      </div>
+
+      {/* Mobile dropdown */}
+      <div
+        className={`md:hidden overflow-hidden transition-all duration-300 ${
+          menuOpen ? "max-h-80 opacity-100" : "max-h-0 opacity-0"
+        }`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="px-4 pb-4 pt-2 flex flex-col gap-1">
+          {NAV_LINKS.map((item) => (
+            <button
+              key={item.label}
+              onClick={() => { scrollTo(item.href); setMenuOpen(false); }}
+              className="w-full text-left px-4 py-3 rounded-xl text-white/80 hover:text-yellow-300 hover:bg-white/8 text-sm font-medium transition-colors"
+            >
+              {item.label}
+            </button>
+          ))}
+          <button
+            onClick={() => { scrollTo("download"); setMenuOpen(false); }}
+            className="mt-2 w-full py-3 px-4 rounded-xl text-sm font-bold text-[#0a1437] gold-gradient shadow-lg"
+          >
+            Download App
+          </button>
         </div>
       </div>
     </nav>
@@ -355,8 +407,8 @@ function HeroSection({ onDownloadClick }: { onDownloadClick: () => void }) {
           <img src="/csa-logo.png" alt={CONGRESS_ABBR} className="h-20 w-20 object-contain animate-float drop-shadow-2xl" style={{ animationDelay: "1s" }} />
         </div>
 
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-400/30 text-yellow-300 text-sm font-medium mb-6 backdrop-blur-sm">
-          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-400/30 text-yellow-300 text-xs sm:text-sm font-medium mb-6 backdrop-blur-sm whitespace-nowrap">
+          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse flex-shrink-0" />
           Inscrições Abertas · 01 Março — 31 Abril 2026
         </div>
 
