@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "CSA 2026 - Congresso do Sector Agro-Alimentar"
+version = "1.0.0"
+id = "artifacts/csa-2026"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+localPort = 22774
+name = "web"
+paths = ["/"]
+
+[services.development]
+run = "pnpm --filter @workspace/csa-2026 run dev"
+
+[services.env]
+PORT = "22774"
+BASE_PATH = "/"
+
+[services.production]
+build = ["pnpm", "--filter", "@workspace/csa-2026", "run", "build"]
+publicDir = "artifacts/csa-2026/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
