@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import CongressPage from "@/pages/CongressPage";
 import AdminPage from "@/pages/AdminPage";
+import GlobalParticles from "@/components/GlobalParticles";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+          <GlobalParticles />
           <Router />
         </WouterRouter>
         <Toaster />

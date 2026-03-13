@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from "react";
-import { loadSettings, type CongressSettings } from "@/lib/settings";
+import { useState, useEffect, useCallback } from "react";
+import { fetchSettings, fetchLinks, type CongressSettings, type AppLink } from "@/lib/api";
 
 const CONGRESS_NAME = "Congresso do Sector Agro-Alimentar";
 const CONGRESS_ABBR = "CSA 2026";
@@ -28,165 +28,6 @@ const thematicAxes = [
     icon: "🤝",
   },
 ];
-
-/* ─── Gravity Particle Canvas ─────────────────────────────────────────────── */
-
-interface Particle {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  ox: number;
-  oy: number;
-  size: number;
-  alpha: number;
-  color: string;
-}
-
-function GravityCanvas() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouse = useRef({ x: -9999, y: -9999 });
-  const particles = useRef<Particle[]>([]);
-  const animFrame = useRef<number>(0);
-
-  const COLORS = [
-    "rgba(200,168,60,",
-    "rgba(245,214,117,",
-    "rgba(255,255,255,",
-    "rgba(100,140,255,",
-    "rgba(180,220,255,",
-  ];
-
-  const buildParticles = useCallback((w: number, h: number) => {
-    const cols = Math.floor(w / 60);
-    const rows = Math.floor(h / 60);
-    const arr: Particle[] = [];
-    for (let c = 0; c < cols; c++) {
-      for (let r = 0; r < rows; r++) {
-        const x = (c + 0.5) * (w / cols) + (Math.random() - 0.5) * 20;
-        const y = (r + 0.5) * (h / rows) + (Math.random() - 0.5) * 20;
-        arr.push({
-          x,
-          y,
-          ox: x,
-          oy: y,
-          vx: 0,
-          vy: 0,
-          size: Math.random() * 2.5 + 0.6,
-          alpha: Math.random() * 0.5 + 0.15,
-          color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        });
-      }
-    }
-    particles.current = arr;
-  }, []);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-      buildParticles(canvas.width, canvas.height);
-    };
-    resize();
-
-    const ro = new ResizeObserver(resize);
-    ro.observe(canvas);
-
-    const onMove = (e: MouseEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      mouse.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    };
-    const onLeave = () => {
-      mouse.current = { x: -9999, y: -9999 };
-    };
-    canvas.addEventListener("mousemove", onMove);
-    canvas.addEventListener("mouseleave", onLeave);
-
-    const REPEL = 120;
-    const SPRING = 0.04;
-    const DAMPING = 0.82;
-    const FORCE = 3500;
-
-    const tick = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const mx = mouse.current.x;
-      const my = mouse.current.y;
-
-      for (const p of particles.current) {
-        // Mouse repulsion
-        const dx = p.x - mx;
-        const dy = p.y - my;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-        if (dist < REPEL && dist > 0) {
-          const f = (FORCE / (dist * dist)) * (1 - dist / REPEL);
-          p.vx += (dx / dist) * f;
-          p.vy += (dy / dist) * f;
-        }
-
-        // Spring back to origin
-        p.vx += (p.ox - p.x) * SPRING;
-        p.vy += (p.oy - p.y) * SPRING;
-
-        // Damping
-        p.vx *= DAMPING;
-        p.vy *= DAMPING;
-
-        p.x += p.vx;
-        p.y += p.vy;
-
-        // Draw
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = p.color + p.alpha + ")";
-        ctx.fill();
-      }
-
-      // Draw connecting lines between close particles near mouse
-      for (let i = 0; i < particles.current.length; i++) {
-        const a = particles.current[i];
-        const dax = a.x - mx;
-        const day = a.y - my;
-        if (Math.sqrt(dax * dax + day * day) > REPEL * 1.5) continue;
-        for (let j = i + 1; j < particles.current.length; j++) {
-          const b = particles.current[j];
-          const ddx = a.x - b.x;
-          const ddy = a.y - b.y;
-          const d = Math.sqrt(ddx * ddx + ddy * ddy);
-          if (d < 60) {
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = `rgba(200,168,60,${0.15 * (1 - d / 60)})`;
-            ctx.lineWidth = 0.6;
-            ctx.stroke();
-          }
-        }
-      }
-
-      animFrame.current = requestAnimationFrame(tick);
-    };
-    tick();
-
-    return () => {
-      cancelAnimationFrame(animFrame.current);
-      ro.disconnect();
-      canvas.removeEventListener("mousemove", onMove);
-      canvas.removeEventListener("mouseleave", onLeave);
-    };
-  }, [buildParticles]);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full pointer-events-auto z-10"
-      style={{ mixBlendMode: "screen" }}
-    />
-  );
-}
 
 /* ─── Toast notification ──────────────────────────────────────────────────── */
 
@@ -238,6 +79,8 @@ const NAV_LINKS = [
   { label: "Início", href: "inicio" },
   { label: "Sobre", href: "sobre" },
   { label: "Eixos Temáticos", href: "eixos" },
+  { label: "Chamada de Artigos", href: "chamada" },
+  { label: "Programa", href: "programa" },
   { label: "Download", href: "download" },
 ];
 
@@ -362,7 +205,7 @@ function HeroSection({
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
-    const target = new Date(settings.inscriptionEndDate + "T23:59:59Z");
+    const target = new Date(settings.inscription_end_date + "T23:59:59Z");
     const calc = () => {
       const diff = target.getTime() - Date.now();
       if (diff <= 0) {
@@ -379,7 +222,7 @@ function HeroSection({
     calc();
     const id = setInterval(calc, 1000);
     return () => clearInterval(id);
-  }, [settings.inscriptionEndDate]);
+  }, [settings.inscription_end_date]);
 
   return (
     <section id="inicio" className="relative min-h-screen flex items-center justify-center overflow-hidden">
@@ -388,9 +231,6 @@ function HeroSection({
         <img src="/instituto2.jpeg" alt={INSTITUTE} className="w-full h-full object-cover object-center" />
         <div className="absolute inset-0 hero-overlay" />
       </div>
-
-      {/* Gravity Particle Canvas */}
-      <GravityCanvas />
 
       {/* Decorative rings */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none z-[5]">
@@ -623,6 +463,264 @@ function ThematicAxesSection() {
   );
 }
 
+/* ─── Call for Papers ─────────────────────────────────────────────────────── */
+
+function CallForPapersSection() {
+  const deadlines = [
+    { label: "Submissão de resumos", date: "15 Mar 2026", done: true },
+    { label: "Notificação de aceitação", date: "01 Abr 2026", done: false },
+    { label: "Versão final dos artigos", date: "20 Abr 2026", done: false },
+    { label: "Encerramento das inscrições", date: "30 Abr 2026", done: false },
+    { label: "Congresso CSA 2026", date: "15–16 Mai 2026", done: false },
+  ];
+
+  const formats = [
+    { icon: "📄", title: "Artigo Completo", desc: "8 a 12 páginas, revisão por pares duplo-cego", color: "border-yellow-400/20" },
+    { icon: "📝", title: "Resumo Alargado", desc: "2 a 4 páginas, para comunicações orais", color: "border-blue-400/20" },
+    { icon: "🖼️", title: "Poster Científico", desc: "Formato A0, apresentação em sessão dedicada", color: "border-green-400/20" },
+  ];
+
+  return (
+    <section id="chamada" className="py-24 bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+            Submissão de Trabalhos
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">Chamada para Artigos</h2>
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+            Convidamos investigadores, docentes e profissionais do sector agro-alimentar a submeterem os seus trabalhos científicos
+          </p>
+          <div className="section-divider max-w-48 mx-auto mt-6" />
+        </div>
+
+        <div className="grid lg:grid-cols-2 gap-12 items-start">
+          {/* Timeline */}
+          <div>
+            <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+              <span className="text-2xl">📅</span> Datas Importantes
+            </h3>
+            <div className="space-y-4">
+              {deadlines.map((d, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                    d.done ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary"
+                  }`}>
+                    {d.done ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                    ) : (
+                      <span className="text-xs font-bold">{i + 1}</span>
+                    )}
+                  </div>
+                  <div className={`flex-1 flex items-center justify-between p-3.5 rounded-xl border ${
+                    d.done ? "bg-green-50 border-green-200" : "bg-card border-border"
+                  }`}>
+                    <span className={`text-sm font-medium ${d.done ? "text-green-700 line-through opacity-70" : "text-foreground"}`}>
+                      {d.label}
+                    </span>
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                      d.done ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary"
+                    }`}>
+                      {d.date}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Formats & Topics */}
+          <div className="space-y-8">
+            <div>
+              <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+                <span className="text-2xl">📋</span> Formatos Aceites
+              </h3>
+              <div className="space-y-4">
+                {formats.map((f) => (
+                  <div key={f.title} className={`flex items-start gap-4 p-4 rounded-2xl border bg-card ${f.color}`}>
+                    <div className="text-2xl flex-shrink-0">{f.icon}</div>
+                    <div>
+                      <p className="font-semibold text-foreground text-sm">{f.title}</p>
+                      <p className="text-muted-foreground text-xs mt-0.5">{f.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="p-5 rounded-2xl bg-primary/5 border border-primary/15">
+              <p className="text-sm font-semibold text-foreground mb-2">🌍 Língua de Submissão</p>
+              <p className="text-muted-foreground text-sm">
+                Os trabalhos podem ser submetidos em <strong>Português</strong> ou <strong>Inglês</strong>.
+                As submissões são realizadas exclusivamente através da aplicação móvel CSA 2026.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Speakers ────────────────────────────────────────────────────────────── */
+
+function SpeakersSection() {
+  const speakers = [
+    { name: "A confirmar", role: "Keynote Speaker", area: "Segurança Alimentar", country: "🇦🇴 Angola", initials: "?" },
+    { name: "A confirmar", role: "Keynote Speaker", area: "Agro-industria", country: "🇵🇹 Portugal", initials: "?" },
+    { name: "A confirmar", role: "Convidado Especial", area: "Políticas Alimentares", country: "🇧🇷 Brasil", initials: "?" },
+    { name: "A confirmar", role: "Convidado Especial", area: "Tecnologia Alimentar", country: "🌍 Internacional", initials: "?" },
+  ];
+
+  return (
+    <section
+      id="palestrantes"
+      className="py-24 relative overflow-hidden"
+      style={{ background: "linear-gradient(180deg, #0a1437 0%, #0f1e50 100%)" }}
+    >
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-20 right-10 w-72 h-72 rounded-full opacity-8"
+          style={{ background: "radial-gradient(circle, #c8a83c, transparent 70%)" }} />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="text-center mb-16">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-yellow-400/30 text-yellow-300 text-sm font-semibold mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+            Oradores Convidados
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Palestrantes</h2>
+          <p className="text-white/60 text-lg max-w-2xl mx-auto">
+            Especialistas de renome nacional e internacional partilharão conhecimentos e experiências no sector agro-alimentar
+          </p>
+          <div className="section-divider max-w-48 mx-auto mt-6" />
+        </div>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {speakers.map((s, i) => (
+            <div key={i} className="glass-card rounded-3xl p-6 text-center card-hover border border-white/10 hover:border-yellow-400/25">
+              <div
+                className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl font-bold"
+                style={{ background: "linear-gradient(135deg, rgba(200,168,60,0.2), rgba(200,168,60,0.05))", border: "2px solid rgba(200,168,60,0.2)" }}
+              >
+                <span className="text-yellow-300 text-2xl">{s.initials}</span>
+              </div>
+              <p className="text-white/40 text-xs mb-1">{s.country}</p>
+              <h4 className="text-white font-bold text-sm mb-1">{s.name}</h4>
+              <p className="text-yellow-300/70 text-xs font-medium mb-2">{s.role}</p>
+              <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 text-xs">
+                {s.area}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-center text-white/30 text-sm mt-10">
+          A lista completa de palestrantes será publicada brevemente
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Programme ───────────────────────────────────────────────────────────── */
+
+function ProgrammeSection() {
+  const [day, setDay] = useState<1 | 2>(1);
+
+  const schedule: Record<1 | 2, { time: string; title: string; speaker?: string; type: string }[]> = {
+    1: [
+      { time: "08:00", title: "Credenciação e Recepção dos Participantes", type: "logistica" },
+      { time: "09:00", title: "Cerimónia de Abertura Oficial", speaker: "Direcção da URNM", type: "cerimonia" },
+      { time: "09:45", title: "Conferência Inaugural — Segurança Alimentar em Angola", speaker: "Keynote Speaker (A confirmar)", type: "keynote" },
+      { time: "11:00", title: "Pausa para Café e Networking", type: "pausa" },
+      { time: "11:30", title: "Sessão 1 — Ensino e Investigação no Sector Agro-Alimentar", type: "sessao" },
+      { time: "13:00", title: "Almoço", type: "pausa" },
+      { time: "14:30", title: "Sessão 2 — Contribuição do Sector Agro na Economia Nacional", type: "sessao" },
+      { time: "16:00", title: "Sessão de Posters Científicos", type: "poster" },
+      { time: "17:30", title: "Encerramento do 1.º Dia", type: "cerimonia" },
+    ],
+    2: [
+      { time: "09:00", title: "Conferência Convidada — Integração Empresarial e Políticas Alimentares", speaker: "Convidado Especial (A confirmar)", type: "keynote" },
+      { time: "10:30", title: "Pausa para Café", type: "pausa" },
+      { time: "11:00", title: "Sessão 3 — Integração Empresarial e Políticas de Desenvolvimento", type: "sessao" },
+      { time: "12:30", title: "Mesa Redonda — O Futuro do Sector Agro-Alimentar em Angola", type: "debate" },
+      { time: "13:30", title: "Almoço", type: "pausa" },
+      { time: "15:00", title: "Apresentação de Trabalhos de Jovens Investigadores", type: "sessao" },
+      { time: "16:30", title: "Cerimónia de Encerramento e Entrega de Certificados", speaker: "Comité Organizador", type: "cerimonia" },
+      { time: "17:30", title: "Cocktail de Encerramento", type: "pausa" },
+    ],
+  };
+
+  const typeColors: Record<string, string> = {
+    keynote: "bg-yellow-400/15 border-yellow-400/30 text-yellow-300",
+    sessao: "bg-blue-400/15 border-blue-400/30 text-blue-300",
+    cerimonia: "bg-purple-400/15 border-purple-400/30 text-purple-300",
+    pausa: "bg-white/5 border-white/10 text-white/40",
+    poster: "bg-green-400/15 border-green-400/30 text-green-300",
+    debate: "bg-orange-400/15 border-orange-400/30 text-orange-300",
+    logistica: "bg-white/5 border-white/10 text-white/40",
+  };
+
+  return (
+    <section
+      id="programa"
+      className="py-24 bg-background"
+    >
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+            Agenda Científica
+          </div>
+          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">Programa do Congresso</h2>
+          <p className="text-muted-foreground">15 e 16 de Maio de 2026 · Instituto de Tecnologia Agro-Alimentar, URNM</p>
+        </div>
+
+        {/* Day tabs */}
+        <div className="flex gap-2 mb-8 justify-center">
+          {([1, 2] as (1 | 2)[]).map((d) => (
+            <button
+              key={d}
+              onClick={() => setDay(d)}
+              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
+                day === d
+                  ? "text-[#0a1437] shadow-lg"
+                  : "bg-card border border-border text-muted-foreground hover:text-foreground"
+              }`}
+              style={day === d ? { background: "linear-gradient(135deg, #c8a83c, #f5d675)" } : {}}
+            >
+              Dia {d} — {d === 1 ? "15 Maio" : "16 Maio"}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-2">
+          {schedule[day].map((item, i) => (
+            <div key={i} className={`flex gap-4 p-4 rounded-2xl border ${typeColors[item.type]}`}>
+              <div className="flex-shrink-0 w-14 text-right">
+                <span className="text-xs font-mono font-bold opacity-80">{item.time}</span>
+              </div>
+              <div className="w-px bg-current opacity-20 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm leading-snug">{item.title}</p>
+                {item.speaker && (
+                  <p className="text-xs opacity-70 mt-0.5">🎤 {item.speaker}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <p className="text-center text-muted-foreground text-xs mt-6">
+          * Programa sujeito a alterações. Versão definitiva disponível na aplicação móvel CSA 2026.
+        </p>
+      </div>
+    </section>
+  );
+}
+
 /* ─── Pricing ─────────────────────────────────────────────────────────────── */
 
 function PricingSection() {
@@ -722,10 +820,10 @@ function PricingSection() {
 
 function DownloadSection({
   onDownloadClick,
-  settings,
+  links,
 }: {
   onDownloadClick: () => void;
-  settings: CongressSettings;
+  links: AppLink[];
 }) {
   return (
     <section
@@ -756,9 +854,9 @@ function DownloadSection({
         <div className="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto mb-16">
           {[
             {
-              platform: "Android",
+              platform: "android",
+              display: "Android",
               store: "Google Play Store",
-              link: settings.androidLink.trim(),
               icon: (
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
                   <path d="M6 18c0 .55.45 1 1 1h1v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h2v3.5c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5V19h1c.55 0 1-.45 1-1V8H6v10zM3.5 8C2.67 8 2 8.67 2 9.5v7c0 .83.67 1.5 1.5 1.5S5 17.33 5 16.5v-7C5 8.67 4.33 8 3.5 8zm17 0c-.83 0-1.5.67-1.5 1.5v7c0 .83.67 1.5 1.5 1.5s1.5-.67 1.5-1.5v-7c0-.83-.67-1.5-1.5-1.5zm-4.97-5.84l1.3-1.3c.2-.2.2-.51 0-.71-.2-.2-.51-.2-.71 0l-1.48 1.48C13.85 1.23 12.95 1 12 1c-.96 0-1.86.23-2.66.63L7.85.15c-.2-.2-.51-.2-.71 0-.2.2-.2.51 0 .71l1.31 1.31C6.97 3.26 6 5.01 6 7h12c0-1.99-.97-3.75-2.47-4.84zM10 5H9V4h1v1zm5 0h-1V4h1v1z"/>
@@ -767,9 +865,9 @@ function DownloadSection({
               bg: "linear-gradient(135deg, #1a1a2e, #16213e)",
             },
             {
-              platform: "iOS",
+              platform: "ios",
+              display: "iOS",
               store: "Apple App Store",
-              link: settings.iosLink.trim(),
               icon: (
                 <svg width="40" height="40" viewBox="0 0 24 24" fill="white">
                   <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/>
@@ -777,16 +875,18 @@ function DownloadSection({
               ),
               bg: "linear-gradient(135deg, #1c1c1e, #2c2c2e)",
             },
-          ].map(({ platform, store, icon, bg, link }) => (
+          ].map(({ platform, display, store, icon, bg }) => {
+            const activeLink = links.find((l) => l.platform === platform && l.active);
+            return (
             <div key={platform} className="glass-card rounded-3xl p-8 text-center card-hover group border border-white/10 hover:border-yellow-400/30 transition-all">
               <div className="w-20 h-20 rounded-2xl mx-auto mb-6 flex items-center justify-center" style={{ background: bg }}>
                 {icon}
               </div>
-              <h3 className="text-white font-bold text-xl mb-2">{platform}</h3>
+              <h3 className="text-white font-bold text-xl mb-2">{display}</h3>
               <p className="text-white/60 text-sm mb-6">{store}</p>
-              {link ? (
+              {activeLink ? (
                 <a
-                  href={link}
+                  href={activeLink.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="download-btn w-full py-3 px-6 rounded-2xl font-semibold text-[#0a1437] gold-gradient shadow-lg text-sm hover:scale-105 transition-transform flex items-center justify-center gap-2"
@@ -794,7 +894,7 @@ function DownloadSection({
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M5 20h14v-2H5v2zM19 9h-4V3H9v6H5l7 7 7-7z"/>
                   </svg>
-                  Descarregar
+                  {activeLink.label || "Descarregar"}
                 </a>
               ) : (
                 <button
@@ -810,7 +910,7 @@ function DownloadSection({
                 </button>
               )}
             </div>
-          ))}
+          );})}
         </div>
 
         {/* How to participate */}
@@ -913,12 +1013,16 @@ function Footer() {
 
 export default function CongressPage() {
   const [toastVisible, setToastVisible] = useState(false);
-  const [settings, setSettings] = useState(() => loadSettings());
+  const [settings, setSettings] = useState<CongressSettings>({
+    inscription_end_date: "2026-04-30",
+    congress_event_date: "2026-05-15",
+    congress_location: "Instituto de Tecnologia Agro-Alimentar, URNM, Angola",
+  });
+  const [links, setLinks] = useState<AppLink[]>([]);
 
   useEffect(() => {
-    const handleStorage = () => setSettings(loadSettings());
-    window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+    fetchSettings().then(setSettings);
+    fetchLinks().then(setLinks);
   }, []);
 
   const handleDownloadClick = useCallback(() => {
@@ -931,8 +1035,11 @@ export default function CongressPage() {
       <HeroSection onDownloadClick={handleDownloadClick} settings={settings} />
       <AboutSection />
       <ThematicAxesSection />
+      <CallForPapersSection />
+      <SpeakersSection />
+      <ProgrammeSection />
       <PricingSection />
-      <DownloadSection onDownloadClick={handleDownloadClick} settings={settings} />
+      <DownloadSection onDownloadClick={handleDownloadClick} links={links} />
       <Footer />
       <ComingSoonToast visible={toastVisible} onClose={() => setToastVisible(false)} />
     </div>
