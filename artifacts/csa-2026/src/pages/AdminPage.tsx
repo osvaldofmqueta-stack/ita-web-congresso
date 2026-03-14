@@ -122,18 +122,19 @@ function LoginScreen({ onLogin }: { onLogin: (pin: string) => void }) {
 
 /* ─── Configurações (data do congresso, local) ────────────────────────────── */
 
-const DEFAULT_FORMATS: AcceptedFormat[] = [
-  { icon: "📄", title: "Artigo Completo", desc: "8 a 12 páginas, revisão por pares duplo-cego", color: "border-yellow-400/20" },
-  { icon: "📝", title: "Resumo Alargado", desc: "2 a 4 páginas, para comunicações orais", color: "border-blue-400/20" },
-  { icon: "🖼️", title: "Poster Científico", desc: "Formato A0, apresentação em sessão dedicada", color: "border-green-400/20" },
-];
+const EMPTY_FORMAT: AcceptedFormat = { icon: "", title: "", desc: "", color: "border-gray-400/20" };
 
 function AdminSettings({ pin }: { pin: string }) {
   const [settings, setSettings] = useState<CongressSettings>({
-    inscription_end_date: "2026-04-30",
-    congress_event_date: "2026-05-15",
-    congress_location: "Instituto de Tecnologia Agro-Alimentar, URNM, Angola",
-    accepted_formats: DEFAULT_FORMATS,
+    congress_name: "",
+    congress_abbr: "",
+    institution: "",
+    university: "",
+    university_abbr: "",
+    inscription_end_date: "",
+    congress_event_date: "",
+    congress_location: "",
+    accepted_formats: [],
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -178,6 +179,60 @@ function AdminSettings({ pin }: { pin: string }) {
         </div>
       )}
       <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-4">
+        <h3 className="font-semibold text-yellow-300">Nome e instituição</h3>
+        <div>
+          <label className="block text-white/60 text-xs uppercase tracking-wider mb-1">Nome do congresso</label>
+          <input
+            type="text"
+            value={settings.congress_name}
+            onChange={(e) => setSettings((s) => ({ ...s, congress_name: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
+            placeholder="Ex: Congresso do Sector Agro-Alimentar"
+          />
+        </div>
+        <div>
+          <label className="block text-white/60 text-xs uppercase tracking-wider mb-1">Sigla do congresso</label>
+          <input
+            type="text"
+            value={settings.congress_abbr}
+            onChange={(e) => setSettings((s) => ({ ...s, congress_abbr: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
+            placeholder="Ex: CSA 2026"
+          />
+        </div>
+        <div>
+          <label className="block text-white/60 text-xs uppercase tracking-wider mb-1">Instituição</label>
+          <input
+            type="text"
+            value={settings.institution}
+            onChange={(e) => setSettings((s) => ({ ...s, institution: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
+            placeholder="Ex: Instituto de Tecnologia Agro-Alimentar"
+          />
+        </div>
+        <div>
+          <label className="block text-white/60 text-xs uppercase tracking-wider mb-1">Universidade</label>
+          <input
+            type="text"
+            value={settings.university}
+            onChange={(e) => setSettings((s) => ({ ...s, university: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
+            placeholder="Ex: Universidade Rainha Njinga a Mbande"
+          />
+        </div>
+        <div>
+          <label className="block text-white/60 text-xs uppercase tracking-wider mb-1">Sigla da universidade</label>
+          <input
+            type="text"
+            value={settings.university_abbr}
+            onChange={(e) => setSettings((s) => ({ ...s, university_abbr: e.target.value }))}
+            className="w-full px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm"
+            placeholder="Ex: URNM"
+          />
+        </div>
+      </div>
+
+      <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-4">
         <h3 className="font-semibold text-yellow-300">Datas e local do congresso</h3>
         <div>
           <label className="block text-white/60 text-xs uppercase tracking-wider mb-1">Fim das inscrições (YYYY-MM-DD)</label>
@@ -218,14 +273,14 @@ function AdminSettings({ pin }: { pin: string }) {
         <h3 className="font-semibold text-yellow-300">Formatos Aceites</h3>
         <p className="text-white/60 text-xs">Os formatos que aparecem na secção Chamada para Artigos do site.</p>
         <div className="space-y-3">
-          {(settings.accepted_formats ?? DEFAULT_FORMATS).map((f, idx) => (
+          {(settings.accepted_formats ?? []).map((f, idx) => (
             <div key={idx} className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-white/5 border border-white/10">
               <input
                 value={f.icon}
                 onChange={(e) =>
                   setSettings((s) => ({
                     ...s,
-                    accepted_formats: (s.accepted_formats ?? DEFAULT_FORMATS).map((x, i) =>
+                    accepted_formats: (s.accepted_formats ?? []).map((x, i) =>
                       i === idx ? { ...x, icon: e.target.value } : x
                     ),
                   }))
@@ -238,7 +293,7 @@ function AdminSettings({ pin }: { pin: string }) {
                 onChange={(e) =>
                   setSettings((s) => ({
                     ...s,
-                    accepted_formats: (s.accepted_formats ?? DEFAULT_FORMATS).map((x, i) =>
+                    accepted_formats: (s.accepted_formats ?? []).map((x, i) =>
                       i === idx ? { ...x, title: e.target.value } : x
                     ),
                   }))
@@ -251,7 +306,7 @@ function AdminSettings({ pin }: { pin: string }) {
                 onChange={(e) =>
                   setSettings((s) => ({
                     ...s,
-                    accepted_formats: (s.accepted_formats ?? DEFAULT_FORMATS).map((x, i) =>
+                    accepted_formats: (s.accepted_formats ?? []).map((x, i) =>
                       i === idx ? { ...x, desc: e.target.value } : x
                     ),
                   }))
@@ -264,7 +319,7 @@ function AdminSettings({ pin }: { pin: string }) {
                 onChange={(e) =>
                   setSettings((s) => ({
                     ...s,
-                    accepted_formats: (s.accepted_formats ?? DEFAULT_FORMATS).map((x, i) =>
+                    accepted_formats: (s.accepted_formats ?? []).map((x, i) =>
                       i === idx ? { ...x, color: e.target.value } : x
                     ),
                   }))
@@ -277,7 +332,7 @@ function AdminSettings({ pin }: { pin: string }) {
                 onClick={() =>
                   setSettings((s) => ({
                     ...s,
-                    accepted_formats: (s.accepted_formats ?? DEFAULT_FORMATS).filter((_, i) => i !== idx),
+                    accepted_formats: (s.accepted_formats ?? []).filter((_, i) => i !== idx),
                   }))
                 }
                 className="px-2 py-1 text-xs text-red-300 hover:bg-red-500/20 rounded"
@@ -292,7 +347,7 @@ function AdminSettings({ pin }: { pin: string }) {
           onClick={() =>
             setSettings((s) => ({
               ...s,
-              accepted_formats: [...(s.accepted_formats ?? DEFAULT_FORMATS), { icon: "📋", title: "Novo formato", desc: "Descrição", color: "border-gray-400/20" }],
+              accepted_formats: [...(s.accepted_formats ?? []), { ...EMPTY_FORMAT, title: "Novo formato", desc: "Descrição" }],
             }))
           }
           className="text-sm text-yellow-300 hover:underline"

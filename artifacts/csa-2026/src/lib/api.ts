@@ -33,10 +33,15 @@ export interface AcceptedFormat {
 }
 
 export interface CongressSettings {
+  congress_name: string;
+  congress_abbr: string;
+  institution: string;
+  university: string;
+  university_abbr: string;
   inscription_end_date: string;
   congress_event_date: string;
   congress_location: string;
-  accepted_formats?: AcceptedFormat[];
+  accepted_formats: AcceptedFormat[];
 }
 
 export interface AppLink {
@@ -76,46 +81,51 @@ export interface Speaker {
   updatedAt: string;
 }
 
-const DEFAULT_SETTINGS: CongressSettings = {
-  inscription_end_date: "2026-04-30",
-  congress_event_date: "2026-05-15",
-  congress_location: "Instituto de Tecnologia Agro-Alimentar, URNM, Angola",
-};
-
-const DEFAULT_ACCEPTED_FORMATS: AcceptedFormat[] = [
-  { icon: "📄", title: "Artigo Completo", desc: "8 a 12 páginas, revisão por pares duplo-cego", color: "border-yellow-400/20" },
-  { icon: "📝", title: "Resumo Alargado", desc: "2 a 4 páginas, para comunicações orais", color: "border-blue-400/20" },
-  { icon: "🖼️", title: "Poster Científico", desc: "Formato A0, apresentação em sessão dedicada", color: "border-green-400/20" },
-];
-
 function parseAcceptedFormats(val: unknown): AcceptedFormat[] {
-  if (!val) return DEFAULT_ACCEPTED_FORMATS;
+  if (!val) return [];
   try {
     const arr = typeof val === "string" ? JSON.parse(val) : val;
-    if (!Array.isArray(arr)) return DEFAULT_ACCEPTED_FORMATS;
+    if (!Array.isArray(arr)) return [];
     return arr.filter(
       (x): x is AcceptedFormat =>
         x && typeof x.icon === "string" && typeof x.title === "string" && typeof x.desc === "string"
     );
   } catch {
-    return DEFAULT_ACCEPTED_FORMATS;
+    return [];
   }
 }
+
+const EMPTY_SETTINGS: CongressSettings = {
+  congress_name: "",
+  congress_abbr: "",
+  institution: "",
+  university: "",
+  university_abbr: "",
+  inscription_end_date: "",
+  congress_event_date: "",
+  congress_location: "",
+  accepted_formats: [],
+};
 
 export async function fetchSettings(): Promise<CongressSettings> {
   try {
     const res = await fetch(`${API_BASE}/csa/settings`);
-    if (!res.ok) return { ...DEFAULT_SETTINGS, accepted_formats: DEFAULT_ACCEPTED_FORMATS };
+    if (!res.ok) return { ...EMPTY_SETTINGS };
     const data = await res.json();
     const s = data.settings ?? {};
     return {
-      inscription_end_date: s.inscription_end_date ?? DEFAULT_SETTINGS.inscription_end_date,
-      congress_event_date: s.congress_event_date ?? DEFAULT_SETTINGS.congress_event_date,
-      congress_location: s.congress_location ?? DEFAULT_SETTINGS.congress_location,
+      congress_name: s.congress_name ?? "",
+      congress_abbr: s.congress_abbr ?? "",
+      institution: s.institution ?? "",
+      university: s.university ?? "",
+      university_abbr: s.university_abbr ?? "",
+      inscription_end_date: s.inscription_end_date ?? "",
+      congress_event_date: s.congress_event_date ?? "",
+      congress_location: s.congress_location ?? "",
       accepted_formats: parseAcceptedFormats(s.accepted_formats),
     };
   } catch {
-    return { ...DEFAULT_SETTINGS, accepted_formats: DEFAULT_ACCEPTED_FORMATS };
+    return { ...EMPTY_SETTINGS };
   }
 }
 
@@ -177,8 +187,6 @@ export async function fetchDates(): Promise<ImportantDate[]> {
   }
 }
 
-const DEFAULT_ADMIN_PIN = "admin2026";
-
 export async function verifyPin(pin: string): Promise<boolean> {
   const trimmedPin = pin.trim();
   try {
@@ -188,13 +196,9 @@ export async function verifyPin(pin: string): Promise<boolean> {
       body: JSON.stringify({ pin: trimmedPin }),
     });
     const data = await res.json();
-    if (data.ok === true) return true;
-    // Se a API não estiver disponível (ex: backend não corre), aceitar o PIN padrão para permitir entrar
-    if (!res.ok && trimmedPin === DEFAULT_ADMIN_PIN) return true;
-    return false;
+    return data.ok === true;
   } catch {
-    // Fallback: sem backend, aceitar apenas o PIN padrão para o admin continuar acessível
-    return trimmedPin === DEFAULT_ADMIN_PIN;
+    return false;
   }
 }
 
@@ -252,6 +256,11 @@ export async function deleteDate(id: number, pin: string): Promise<{ ok: boolean
 export async function updateSettings(settings: Partial<CongressSettings>, pin: string): Promise<{ ok: boolean; error?: string }> {
   try {
     const payload: Record<string, string> = {};
+    if (settings.congress_name != null) payload.congress_name = settings.congress_name;
+    if (settings.congress_abbr != null) payload.congress_abbr = settings.congress_abbr;
+    if (settings.institution != null) payload.institution = settings.institution;
+    if (settings.university != null) payload.university = settings.university;
+    if (settings.university_abbr != null) payload.university_abbr = settings.university_abbr;
     if (settings.inscription_end_date != null) payload.inscription_end_date = settings.inscription_end_date;
     if (settings.congress_event_date != null) payload.congress_event_date = settings.congress_event_date;
     if (settings.congress_location != null) payload.congress_location = settings.congress_location;

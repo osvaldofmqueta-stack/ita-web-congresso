@@ -3,12 +3,6 @@ import { fetchSettings, fetchLinks, fetchDates, fetchSpeakers, getSpeakerPhotoUr
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { AntiGravityParticles } from "@/components/AntiGravityParticles";
 
-const CONGRESS_NAME = "Congresso do Sector Agro-Alimentar";
-const CONGRESS_ABBR = "CSA 2026";
-const INSTITUTE = "Instituto de Tecnologia Agro-Alimentar";
-const UNIVERSITY = "Universidade Rainha Njinga a Mbande";
-const UNIVERSITY_ABBR = "URNM";
-
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 function formatShortDate(iso: string): string {
   const d = new Date(iso + "T12:00:00Z");
@@ -100,7 +94,7 @@ function scrollTo(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
 }
 
-function Navbar() {
+function Navbar({ settings }: { settings: CongressSettings }) {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -132,8 +126,8 @@ function Navbar() {
           <div className="flex items-center gap-3">
             <img src="/csa-logo.png" alt="CSA Logo" className="h-10 w-10 object-contain" />
             <div>
-              <p className="text-white font-bold text-sm leading-tight">{CONGRESS_ABBR}</p>
-              <p className="text-yellow-300 text-xs font-medium">{UNIVERSITY_ABBR}</p>
+              <p className="text-white font-bold text-sm leading-tight">{settings.congress_abbr || "—"}</p>
+              <p className="text-yellow-300 text-xs font-medium">{settings.university_abbr || "—"}</p>
             </div>
           </div>
 
@@ -220,7 +214,15 @@ function HeroSection({
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
 
   useEffect(() => {
-    const target = new Date(settings.inscription_end_date + "T23:59:59Z");
+    if (!settings.inscription_end_date || settings.inscription_end_date.trim() === "") {
+      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      return;
+    }
+    const target = new Date(settings.inscription_end_date.trim() + "T23:59:59Z");
+    if (Number.isNaN(target.getTime())) {
+      setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      return;
+    }
     const calc = () => {
       const diff = target.getTime() - Date.now();
       if (diff <= 0) {
@@ -243,7 +245,7 @@ function HeroSection({
     <section id="inicio" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background image */}
       <div className="absolute inset-0">
-        <img src="/instituto2.jpeg" alt={INSTITUTE} className="w-full h-full object-cover object-center" />
+        <img src="/instituto2.jpeg" alt={settings.institution || "Instituição"} className="w-full h-full object-cover object-center" />
         <div className="absolute inset-0 hero-overlay" />
       </div>
 
@@ -267,29 +269,29 @@ function HeroSection({
       {/* Content */}
       <div className="relative z-20 text-center max-w-5xl mx-auto px-4 sm:px-6 py-32 pointer-events-none">
         <div className="flex justify-center items-center gap-6 mb-8">
-          <img src="/urnm-logo.png" alt={UNIVERSITY} className="h-20 w-20 object-contain animate-float drop-shadow-2xl" />
+          <img src="/urnm-logo.png" alt={settings.university || "Universidade"} className="h-20 w-20 object-contain animate-float drop-shadow-2xl" />
           <div className="w-px h-16 bg-yellow-400/40" />
-          <img src="/csa-logo.png" alt={CONGRESS_ABBR} className="h-20 w-20 object-contain animate-float drop-shadow-2xl" style={{ animationDelay: "1s" }} />
+          <img src="/csa-logo.png" alt={settings.congress_abbr || "Congresso"} className="h-20 w-20 object-contain animate-float drop-shadow-2xl" style={{ animationDelay: "1s" }} />
         </div>
 
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-400/30 text-yellow-300 text-xs sm:text-sm font-medium mb-6 backdrop-blur-sm whitespace-nowrap">
           <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse flex-shrink-0" />
-          Inscrições Abertas · até {formatShortDate(settings.inscription_end_date)}
+          Inscrições Abertas{settings.inscription_end_date ? ` · até ${formatShortDate(settings.inscription_end_date)}` : ""}
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 leading-tight">
-          <span className="block">{CONGRESS_ABBR}</span>
+          <span className="block">{settings.congress_abbr || "—"}</span>
           <span className="shimmer-text text-3xl sm:text-4xl lg:text-5xl font-bold block mt-2">
-            {CONGRESS_NAME}
+            {settings.congress_name || "—"}
           </span>
         </h1>
 
-        <p className="text-lg sm:text-xl text-white/80 mb-2 font-medium">{INSTITUTE}</p>
+        <p className="text-lg sm:text-xl text-white/80 mb-2 font-medium">{settings.institution || "—"}</p>
         <p className="text-base text-yellow-300/80 mb-10 flex items-center justify-center gap-2">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="flex-shrink-0">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
           </svg>
-          {UNIVERSITY} — República de Angola
+          {settings.university ? `${settings.university} — República de Angola` : "—"}
         </p>
 
         {/* Countdown */}
@@ -482,19 +484,19 @@ function AboutSection({ settings }: { settings: CongressSettings }) {
               e Inovação Agro-Alimentar
             </h2>
             <p className="text-white/80 text-lg leading-relaxed mb-6">
-              O <strong className="text-white">{CONGRESS_NAME} ({CONGRESS_ABBR})</strong> é um evento científico de referência promovido pela{" "}
-              <strong className="text-white">{UNIVERSITY}</strong>, que reúne investigadores, docentes, estudantes e profissionais do sector agro-alimentar angolano.
+              O <strong className="text-white">{settings.congress_name || "Congresso"} ({settings.congress_abbr || "—"})</strong> é um evento científico de referência promovido pela{" "}
+              <strong className="text-white">{settings.university || "—"}</strong>, que reúne investigadores, docentes, estudantes e profissionais do sector agro-alimentar angolano.
             </p>
             <p className="text-white/80 text-lg leading-relaxed mb-8">
-              O congresso decorre no <strong className="text-white">{settings.congress_location || INSTITUTE}</strong>. As inscrições e submissão de apresentações realizam-se exclusivamente através da aplicação móvel, até{" "}
-              <strong className="text-white">{formatShortDate(settings.inscription_end_date)}</strong>. O evento decorre a <strong className="text-white">{formatShortDate(settings.congress_event_date)}</strong>.
+              O congresso decorre no <strong className="text-white">{settings.congress_location || settings.institution || "—"}</strong>. As inscrições e submissão de apresentações realizam-se exclusivamente através da aplicação móvel, até{" "}
+              <strong className="text-white">{settings.inscription_end_date ? formatShortDate(settings.inscription_end_date) : "—"}</strong>. O evento decorre a <strong className="text-white">{settings.congress_event_date ? formatShortDate(settings.congress_event_date) : "—"}</strong>.
             </p>
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { label: "Local", value: settings.congress_location || INSTITUTE, icon: "📍" },
-                { label: "Instituição", value: UNIVERSITY_ABBR, icon: "🎓" },
-                { label: "Inscrições", value: `até ${formatShortDate(settings.inscription_end_date)}`, icon: "📅" },
+                { label: "Local", value: settings.congress_location || settings.institution || "—", icon: "📍" },
+                { label: "Instituição", value: settings.university_abbr || "—", icon: "🎓" },
+                { label: "Inscrições", value: settings.inscription_end_date ? `até ${formatShortDate(settings.inscription_end_date)}` : "—", icon: "📅" },
                 { label: "Candidatura", value: "App Móvel", icon: "📱" },
               ].map((info) => (
                 <div
@@ -512,10 +514,10 @@ function AboutSection({ settings }: { settings: CongressSettings }) {
 
           <div className="relative">
             <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-              <img src="/instituto2.jpeg" alt={INSTITUTE} className="w-full h-80 object-cover" />
+              <img src="/instituto2.jpeg" alt={settings.institution || "Instituição"} className="w-full h-80 object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a1437]/80 via-transparent to-transparent" />
               <div className="absolute bottom-6 left-6 right-6">
-                <p className="text-white font-bold text-lg">{INSTITUTE}</p>
+                <p className="text-white font-bold text-lg">{settings.institution || "—"}</p>
                 <p className="text-yellow-300 text-sm mt-1 flex items-center gap-1">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
@@ -528,7 +530,7 @@ function AboutSection({ settings }: { settings: CongressSettings }) {
             <div className="absolute -top-6 -right-6 w-24 h-24 rounded-2xl shadow-xl flex items-center justify-center border border-white/10"
               style={{ background: "rgba(255,255,255,0.04)", backdropFilter: "blur(16px)" }}
             >
-              <img src="/urnm-logo.png" alt={UNIVERSITY_ABBR} className="w-16 h-16 object-contain" />
+              <img src="/urnm-logo.png" alt={settings.university_abbr || "—"} className="w-16 h-16 object-contain" />
             </div>
             <div className="absolute -bottom-6 -left-6 glass-card rounded-2xl p-4 shadow-xl border border-yellow-400/20"
               style={{ background: "rgba(10,20,55,0.85)" }}
@@ -536,7 +538,7 @@ function AboutSection({ settings }: { settings: CongressSettings }) {
               <div className="flex items-center gap-3">
                 <img src="/csa-logo.png" alt="CSA" className="w-10 h-10 object-contain" />
                 <div>
-                  <p className="text-white text-sm font-bold">{CONGRESS_ABBR}</p>
+                  <p className="text-white text-sm font-bold">{settings.congress_abbr || "—"}</p>
                   <p className="text-yellow-300 text-xs">2026</p>
                 </div>
               </div>
@@ -805,7 +807,7 @@ function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
 
 function PricingSection() {
   return (
-    <section className="py-24 bg-background">
+    <section className="py-24 bg-background text-foreground">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-16">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
@@ -817,7 +819,7 @@ function PricingSection() {
         </div>
 
         <div className="max-w-4xl mx-auto">
-          <div className="rounded-3xl overflow-hidden shadow-xl border border-border/60">
+          <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/10">
             <div className="navy-gradient p-6">
               <div className="grid grid-cols-4 gap-4 text-center">
                 <div className="text-left">
@@ -909,7 +911,7 @@ function DownloadSection({
     <section
       id="download"
       className="py-24 relative overflow-hidden"
-      style={{ background: "linear-gradient(135deg, #0a1437 0%, #1a2d6e 60%, #0a1437 100%)" }}
+      style={{ background: "linear-gradient(135deg, #0a1437 0%, #1a2d6e 50%, #0a1437 100%)" }}
     >
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-5"
@@ -1026,7 +1028,7 @@ function DownloadSection({
 
 /* ─── Footer ──────────────────────────────────────────────────────────────── */
 
-function Footer() {
+function Footer({ settings }: { settings: CongressSettings }) {
   return (
     <footer className="bg-[#050d24] border-t border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -1035,12 +1037,12 @@ function Footer() {
             <div className="flex items-center gap-3 mb-4">
               <img src="/csa-logo.png" alt="CSA" className="w-10 h-10 object-contain" />
               <div>
-                <p className="text-white font-bold text-sm">{CONGRESS_ABBR}</p>
-                <p className="text-yellow-300/70 text-xs">{CONGRESS_NAME}</p>
+                <p className="text-white font-bold text-sm">{settings.congress_abbr || "—"}</p>
+                <p className="text-yellow-300/70 text-xs">{settings.congress_name || "—"}</p>
               </div>
             </div>
             <p className="text-white/50 text-sm leading-relaxed">
-              Um evento científico promovido pela {UNIVERSITY}, dedicado ao avanço do sector agro-alimentar em Angola.
+              Um evento científico promovido pela {settings.university || "—"}, dedicado ao avanço do sector agro-alimentar em Angola.
             </p>
           </div>
 
@@ -1058,9 +1060,9 @@ function Footer() {
           <div>
             <h4 className="text-white font-semibold text-sm mb-4 uppercase tracking-wider">Organização</h4>
             <div className="flex items-start gap-3">
-              <img src="/urnm-logo.png" alt={UNIVERSITY_ABBR} className="w-12 h-12 object-contain flex-shrink-0" />
+              <img src="/urnm-logo.png" alt={settings.university_abbr || "—"} className="w-12 h-12 object-contain flex-shrink-0" />
               <div>
-                <p className="text-white text-sm font-medium">{UNIVERSITY}</p>
+                <p className="text-white text-sm font-medium">{settings.university || "—"}</p>
                 <p className="text-white/50 text-xs mt-1">República de Angola</p>
                 <p className="text-yellow-300/70 text-xs font-medium mt-1 italic">Honoris · Opus · Liberta</p>
               </div>
@@ -1072,7 +1074,7 @@ function Footer() {
 
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-white/30 text-xs text-center md:text-left">
-            © 2026 {CONGRESS_NAME} · {UNIVERSITY} · Todos os direitos reservados
+            © 2026 {settings.congress_name || "—"} · {settings.university || "—"} · Todos os direitos reservados
           </p>
 
           {/* Developer credit — highlighted */}
@@ -1094,9 +1096,15 @@ function Footer() {
 export default function CongressPage() {
   const [toastVisible, setToastVisible] = useState(false);
   const [settings, setSettings] = useState<CongressSettings>({
-    inscription_end_date: "2026-04-30",
-    congress_event_date: "2026-05-15",
-    congress_location: "Instituto de Tecnologia Agro-Alimentar, URNM, Angola",
+    congress_name: "",
+    congress_abbr: "",
+    institution: "",
+    university: "",
+    university_abbr: "",
+    inscription_end_date: "",
+    congress_event_date: "",
+    congress_location: "",
+    accepted_formats: [],
   });
   const [links, setLinks] = useState<AppLink[]>([]);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
@@ -1112,8 +1120,8 @@ export default function CongressPage() {
   }, []);
 
   return (
-    <div className="min-h-screen">
-      <Navbar />
+    <div className="dark min-h-screen bg-background">
+      <Navbar settings={settings} />
       <HeroSection onDownloadClick={handleDownloadClick} settings={settings} />
       <AboutSection settings={settings} />
       <AppSection onDownloadClick={handleDownloadClick} />
@@ -1122,7 +1130,7 @@ export default function CongressPage() {
       <SpeakersSection speakers={speakers} />
       <PricingSection />
       <DownloadSection onDownloadClick={handleDownloadClick} links={links} />
-      <Footer />
+      <Footer settings={settings} />
       <ComingSoonToast visible={toastVisible} onClose={() => setToastVisible(false)} />
     </div>
   );

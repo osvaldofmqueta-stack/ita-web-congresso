@@ -40,31 +40,15 @@ const upload = multer({
   },
 });
 
-const DEFAULT_PIN = "admin2026";
+/** PIN inicial apenas quando não existe nenhum na base (primeira utilização). */
+const INITIAL_PIN_IF_EMPTY = "admin2026";
 
 function normalizePin(p: string | undefined | null): string {
   const s = typeof p === "string" ? p.trim() : "";
-  return s || DEFAULT_PIN;
+  return s;
 }
 
 const router: IRouter = Router();
-
-/* ─── Default settings ─────────────────────────────────────────────────────── */
-const DEFAULT_SETTINGS: Record<string, string> = {
-  inscription_end_date: "2026-04-30",
-  congress_event_date: "2026-05-15",
-  congress_location: "Instituto de Tecnologia Agro-Alimentar, URNM, Angola",
-  admin_pin: "admin2026",
-};
-
-async function ensureDefaults() {
-  for (const [key, value] of Object.entries(DEFAULT_SETTINGS)) {
-    await db
-      .insert(csaSettingsTable)
-      .values({ key, value })
-      .onConflictDoNothing();
-  }
-}
 
 async function getPin(): Promise<string> {
   const row = await db
@@ -72,7 +56,8 @@ async function getPin(): Promise<string> {
     .from(csaSettingsTable)
     .where(eq(csaSettingsTable.key, "admin_pin"))
     .limit(1);
-  return normalizePin(row[0]?.value);
+  const value = normalizePin(row[0]?.value);
+  return value || INITIAL_PIN_IF_EMPTY;
 }
 
 function requirePin(pinFromReq: string | undefined, correctPin: string): boolean {
@@ -82,7 +67,6 @@ function requirePin(pinFromReq: string | undefined, correctPin: string): boolean
 /* ─── GET /api/csa/settings ────────────────────────────────────────────────── */
 router.get("/settings", async (_req, res) => {
   try {
-    await ensureDefaults();
     const rows = await db.select().from(csaSettingsTable);
     const settings: Record<string, string> = {};
     for (const row of rows) {
@@ -133,7 +117,6 @@ router.put("/settings", async (req, res) => {
 /* ─── POST /api/csa/verify-pin ─────────────────────────────────────────────── */
 router.post("/verify-pin", async (req, res) => {
   try {
-    await ensureDefaults();
     const { pin } = (req.body as { pin?: string }) ?? {};
     const correctPin = await getPin();
     if (normalizePin(pin) === correctPin) {
