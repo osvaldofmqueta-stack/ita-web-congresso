@@ -13,6 +13,14 @@ function formatShortDate(iso: string): string {
   return `${day} ${month} ${year}`;
 }
 
+/** Verifica se uma data (YYYY-MM-DD) já passou (considera fim do dia). */
+function isDatePast(dateStr: string): boolean {
+  if (!dateStr?.trim()) return false;
+  const d = new Date(dateStr.trim() + "T23:59:59Z");
+  if (isNaN(d.getTime())) return false;
+  return d.getTime() < Date.now();
+}
+
 const thematicAxes = [
   {
     number: "01",
@@ -212,6 +220,7 @@ function HeroSection({
   settings: CongressSettings;
 }) {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const inscriptionEnded = isDatePast(settings.inscription_end_date ?? "");
 
   useEffect(() => {
     if (!settings.inscription_end_date || settings.inscription_end_date.trim() === "") {
@@ -274,9 +283,22 @@ function HeroSection({
           <img src="/csa-logo.png" alt={settings.congress_abbr || "Congresso"} className="h-20 w-20 object-contain animate-float drop-shadow-2xl" style={{ animationDelay: "1s" }} />
         </div>
 
-        <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-400/30 text-yellow-300 text-xs sm:text-sm font-medium mb-6 backdrop-blur-sm whitespace-nowrap">
-          <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse flex-shrink-0" />
-          Inscrições Abertas{settings.inscription_end_date ? ` · até ${formatShortDate(settings.inscription_end_date)}` : ""}
+        <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full border text-xs sm:text-sm font-medium mb-6 backdrop-blur-sm whitespace-nowrap ${
+          inscriptionEnded
+            ? "bg-green-500/15 border-green-400/30 text-green-300"
+            : "bg-yellow-400/15 border-yellow-400/30 text-yellow-300"
+        }`}>
+          {inscriptionEnded ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-green-400 flex-shrink-0" />
+              Inscrições Encerradas{settings.inscription_end_date ? ` · ${formatShortDate(settings.inscription_end_date)}` : ""}
+            </>
+          ) : (
+            <>
+              <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse flex-shrink-0" />
+              Inscrições Abertas{settings.inscription_end_date ? ` · até ${formatShortDate(settings.inscription_end_date)}` : ""}
+            </>
+          )}
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 leading-tight">
@@ -294,22 +316,29 @@ function HeroSection({
           {settings.university ? `${settings.university} — República de Angola` : "—"}
         </p>
 
-        {/* Countdown */}
-        <div className="grid grid-cols-4 gap-3 max-w-lg mx-auto mb-12">
-          {[
-            { label: "Dias", value: timeLeft.days },
-            { label: "Horas", value: timeLeft.hours },
-            { label: "Min", value: timeLeft.minutes },
-            { label: "Seg", value: timeLeft.seconds },
-          ].map((item) => (
-            <div key={item.label} className="glass-card rounded-2xl p-3 text-center">
-              <p className="text-3xl font-bold text-yellow-300 font-mono tabular-nums">
-                {String(item.value).padStart(2, "0")}
-              </p>
-              <p className="text-white/60 text-xs mt-1 uppercase tracking-wider">{item.label}</p>
-            </div>
-          ))}
-        </div>
+        {/* Countdown ou Terminado */}
+        {inscriptionEnded ? (
+          <div className="glass-card rounded-2xl p-6 max-w-md mx-auto mb-12 text-center">
+            <p className="text-2xl font-bold text-green-300">Terminado</p>
+            <p className="text-white/60 text-sm mt-1">O prazo de inscrições já terminou</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-4 gap-3 max-w-lg mx-auto mb-12">
+            {[
+              { label: "Dias", value: timeLeft.days },
+              { label: "Horas", value: timeLeft.hours },
+              { label: "Min", value: timeLeft.minutes },
+              { label: "Seg", value: timeLeft.seconds },
+            ].map((item) => (
+              <div key={item.label} className="glass-card rounded-2xl p-3 text-center">
+                <p className="text-3xl font-bold text-yellow-300 font-mono tabular-nums">
+                  {String(item.value).padStart(2, "0")}
+                </p>
+                <p className="text-white/60 text-xs mt-1 uppercase tracking-wider">{item.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center pointer-events-auto">
           <button
@@ -456,6 +485,7 @@ function AppSection({ onDownloadClick }: { onDownloadClick: () => void }) {
 /* ─── About ───────────────────────────────────────────────────────────────── */
 
 function AboutSection({ settings }: { settings: CongressSettings }) {
+  const inscriptionEnded = isDatePast(settings.inscription_end_date ?? "");
   return (
     <section
       id="sobre"
@@ -496,7 +526,9 @@ function AboutSection({ settings }: { settings: CongressSettings }) {
               {[
                 { label: "Local", value: settings.congress_location || settings.institution || "—", icon: "📍" },
                 { label: "Instituição", value: settings.university_abbr || "—", icon: "🎓" },
-                { label: "Inscrições", value: settings.inscription_end_date ? `até ${formatShortDate(settings.inscription_end_date)}` : "—", icon: "📅" },
+                { label: "Inscrições", value: inscriptionEnded
+                  ? (settings.inscription_end_date ? `Terminado (${formatShortDate(settings.inscription_end_date)})` : "Terminado")
+                  : (settings.inscription_end_date ? `até ${formatShortDate(settings.inscription_end_date)}` : "—"), icon: "📅" },
                 { label: "Candidatura", value: "App Móvel", icon: "📱" },
               ].map((info) => (
                 <div
@@ -662,31 +694,34 @@ function CallForPapersSection({ settings }: { settings: CongressSettings }) {
               <p className="text-white/60 text-sm py-4">As datas importantes serão anunciadas em breve. Configure-as na área administrativa.</p>
             ) : (
               <div className="space-y-4">
-                {deadlines.map((d, i) => (
+                {deadlines.map((d, i) => {
+                  const terminado = d.done || isDatePast(d.date);
+                  return (
                   <div key={d.id} className="flex items-center gap-4">
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      d.done ? "bg-green-500/20 text-green-300" : "bg-yellow-400/20 text-yellow-300"
+                      terminado ? "bg-green-500/20 text-green-300" : "bg-yellow-400/20 text-yellow-300"
                     }`}>
-                      {d.done ? (
+                      {terminado ? (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
                       ) : (
                         <span className="text-xs font-bold">{i + 1}</span>
                       )}
                     </div>
                     <div className={`flex-1 flex items-center justify-between p-3.5 rounded-xl border ${
-                      d.done ? "bg-green-500/10 border-green-400/30" : "glass-card border-white/10"
+                      terminado ? "bg-green-500/10 border-green-400/30" : "glass-card border-white/10"
                     }`}>
-                      <span className={`text-sm font-medium ${d.done ? "text-green-300 line-through opacity-70" : "text-white"}`}>
+                      <span className={`text-sm font-medium ${terminado ? "text-green-300 line-through opacity-70" : "text-white"}`}>
                         {d.label}
                       </span>
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                        d.done ? "bg-green-500/20 text-green-300" : "bg-yellow-400/20 text-yellow-300"
+                        terminado ? "bg-green-500/20 text-green-300" : "bg-yellow-400/20 text-yellow-300"
                       }`}>
-                        {d.date}
+                        {terminado ? "Terminado" : d.date}
                       </span>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
