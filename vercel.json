@@ -1,6 +1,6 @@
 {
   "buildCommand": "pnpm install && pnpm --filter @workspace/csa-2026 run build",
-  "outputDirectory": "artifacts/csa-2026/dist/public",
+  "outputDirectory": "artifacts/csa-2026/public",
   "installCommand": "pnpm install",
   "framework": null,
   "env": {
