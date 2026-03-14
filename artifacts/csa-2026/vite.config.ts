@@ -2,7 +2,19 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import { copyFileSync, mkdirSync, readdirSync, existsSync } from "fs";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
+
+function copyDirSync(src: string, dest: string) {
+  if (!existsSync(src)) return;
+  mkdirSync(dest, { recursive: true });
+  for (const name of readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, name.name);
+    const destPath = path.join(dest, name.name);
+    if (name.isDirectory()) copyDirSync(srcPath, destPath);
+    else copyFileSync(srcPath, destPath);
+  }
+}
 
 const isBuild = process.argv.includes("build");
 
@@ -21,6 +33,14 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    {
+      name: "copy-static",
+      closeBundle() {
+        const staticDir = path.resolve(import.meta.dirname, "static");
+        const outDir = path.resolve(import.meta.dirname, "dist");
+        copyDirSync(staticDir, outDir);
+      },
+    },
     runtimeErrorOverlay(),
     ...(process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined
       ? await (async () => {
@@ -48,9 +68,9 @@ export default defineConfig({
   },
   root: path.resolve(import.meta.dirname),
   build: {
-    outDir: path.resolve(import.meta.dirname, "public"),
+    outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
-    publicDir: false,
+    publicDir: path.resolve(import.meta.dirname, "static"),
   },
   server: {
     port,
