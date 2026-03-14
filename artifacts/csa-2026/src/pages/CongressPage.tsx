@@ -691,7 +691,7 @@ function CallForPapersSection({ settings }: { settings: CongressSettings }) {
             {loadingDates ? (
               <p className="text-white/60 text-sm">A carregar datas...</p>
             ) : deadlines.length === 0 ? (
-              <p className="text-white/60 text-sm py-4">As datas importantes serão anunciadas em breve. Configure-as na área administrativa.</p>
+              <p className="text-white/60 text-sm py-4">As datas importantes serão anunciadas em breve. Serão anunciadas em breve.</p>
             ) : (
               <div className="space-y-4">
                 {deadlines.map((d, i) => {
