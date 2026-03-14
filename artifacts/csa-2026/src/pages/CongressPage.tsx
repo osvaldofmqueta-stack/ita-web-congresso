@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { fetchSettings, fetchLinks, type CongressSettings, type AppLink } from "@/lib/api";
+import { getSettings, getLinks, fetchDates, type CongressSettings, type AppLink, type ImportantDate } from "@/lib/api";
 
 const CONGRESS_NAME = "Congresso do Sector Agro-Alimentar";
 const CONGRESS_ABBR = "CSA 2026";
@@ -80,8 +80,6 @@ const NAV_LINKS = [
   { label: "Sobre", href: "sobre" },
   { label: "Eixos Temáticos", href: "eixos" },
   { label: "Chamada de Artigos", href: "chamada" },
-  { label: "Programa", href: "programa" },
-  { label: "Download", href: "download" },
 ];
 
 function scrollTo(id: string) {
@@ -183,8 +181,11 @@ function Navbar() {
           ))}
           <button
             onClick={() => { scrollTo("download"); setMenuOpen(false); }}
-            className="mt-2 w-full py-3 px-4 rounded-xl text-sm font-bold text-[#0a1437] gold-gradient shadow-lg"
+            className="mt-2 w-full py-3 px-4 rounded-xl text-sm font-bold text-[#0a1437] gold-gradient shadow-lg inline-flex items-center justify-center gap-2"
           >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99z"/>
+            </svg>
             Download App
           </button>
         </div>
@@ -465,14 +466,24 @@ function ThematicAxesSection() {
 
 /* ─── Call for Papers ─────────────────────────────────────────────────────── */
 
+const DEFAULT_DEADLINES: { label: string; date: string; done: boolean }[] = [
+  { label: "Submissão de resumos", date: "15 Mar 2026", done: true },
+  { label: "Notificação de aceitação", date: "01 Abr 2026", done: false },
+  { label: "Versão final dos artigos", date: "20 Abr 2026", done: false },
+  { label: "Encerramento das inscrições", date: "30 Abr 2026", done: false },
+  { label: "Congresso CSA 2026", date: "15–16 Mai 2026", done: false },
+];
+
 function CallForPapersSection() {
-  const deadlines = [
-    { label: "Submissão de resumos", date: "15 Mar 2026", done: true },
-    { label: "Notificação de aceitação", date: "01 Abr 2026", done: false },
-    { label: "Versão final dos artigos", date: "20 Abr 2026", done: false },
-    { label: "Encerramento das inscrições", date: "30 Abr 2026", done: false },
-    { label: "Congresso CSA 2026", date: "15–16 Mai 2026", done: false },
-  ];
+  const [deadlines, setDeadlines] = useState<{ label: string; date: string; done: boolean }[]>(DEFAULT_DEADLINES);
+
+  useEffect(() => {
+    fetchDates().then((dates) => {
+      if (dates.length > 0) {
+        setDeadlines(dates.map((d) => ({ label: d.label, date: d.date, done: d.done })));
+      }
+    });
+  }, []);
 
   const formats = [
     { icon: "📄", title: "Artigo Completo", desc: "8 a 12 páginas, revisão por pares duplo-cego", color: "border-yellow-400/20" },
@@ -618,103 +629,6 @@ function SpeakersSection() {
 
         <p className="text-center text-white/30 text-sm mt-10">
           A lista completa de palestrantes será publicada brevemente
-        </p>
-      </div>
-    </section>
-  );
-}
-
-/* ─── Programme ───────────────────────────────────────────────────────────── */
-
-function ProgrammeSection() {
-  const [day, setDay] = useState<1 | 2>(1);
-
-  const schedule: Record<1 | 2, { time: string; title: string; speaker?: string; type: string }[]> = {
-    1: [
-      { time: "08:00", title: "Credenciação e Recepção dos Participantes", type: "logistica" },
-      { time: "09:00", title: "Cerimónia de Abertura Oficial", speaker: "Direcção da URNM", type: "cerimonia" },
-      { time: "09:45", title: "Conferência Inaugural — Segurança Alimentar em Angola", speaker: "Keynote Speaker (A confirmar)", type: "keynote" },
-      { time: "11:00", title: "Pausa para Café e Networking", type: "pausa" },
-      { time: "11:30", title: "Sessão 1 — Ensino e Investigação no Sector Agro-Alimentar", type: "sessao" },
-      { time: "13:00", title: "Almoço", type: "pausa" },
-      { time: "14:30", title: "Sessão 2 — Contribuição do Sector Agro na Economia Nacional", type: "sessao" },
-      { time: "16:00", title: "Sessão de Posters Científicos", type: "poster" },
-      { time: "17:30", title: "Encerramento do 1.º Dia", type: "cerimonia" },
-    ],
-    2: [
-      { time: "09:00", title: "Conferência Convidada — Integração Empresarial e Políticas Alimentares", speaker: "Convidado Especial (A confirmar)", type: "keynote" },
-      { time: "10:30", title: "Pausa para Café", type: "pausa" },
-      { time: "11:00", title: "Sessão 3 — Integração Empresarial e Políticas de Desenvolvimento", type: "sessao" },
-      { time: "12:30", title: "Mesa Redonda — O Futuro do Sector Agro-Alimentar em Angola", type: "debate" },
-      { time: "13:30", title: "Almoço", type: "pausa" },
-      { time: "15:00", title: "Apresentação de Trabalhos de Jovens Investigadores", type: "sessao" },
-      { time: "16:30", title: "Cerimónia de Encerramento e Entrega de Certificados", speaker: "Comité Organizador", type: "cerimonia" },
-      { time: "17:30", title: "Cocktail de Encerramento", type: "pausa" },
-    ],
-  };
-
-  const typeColors: Record<string, string> = {
-    keynote: "bg-yellow-400/15 border-yellow-400/30 text-yellow-300",
-    sessao: "bg-blue-400/15 border-blue-400/30 text-blue-300",
-    cerimonia: "bg-purple-400/15 border-purple-400/30 text-purple-300",
-    pausa: "bg-white/5 border-white/10 text-white/40",
-    poster: "bg-green-400/15 border-green-400/30 text-green-300",
-    debate: "bg-orange-400/15 border-orange-400/30 text-orange-300",
-    logistica: "bg-white/5 border-white/10 text-white/40",
-  };
-
-  return (
-    <section
-      id="programa"
-      className="py-24 bg-background"
-    >
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            Agenda Científica
-          </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">Programa do Congresso</h2>
-          <p className="text-muted-foreground">15 e 16 de Maio de 2026 · Instituto de Tecnologia Agro-Alimentar, URNM</p>
-        </div>
-
-        {/* Day tabs */}
-        <div className="flex gap-2 mb-8 justify-center">
-          {([1, 2] as (1 | 2)[]).map((d) => (
-            <button
-              key={d}
-              onClick={() => setDay(d)}
-              className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${
-                day === d
-                  ? "text-[#0a1437] shadow-lg"
-                  : "bg-card border border-border text-muted-foreground hover:text-foreground"
-              }`}
-              style={day === d ? { background: "linear-gradient(135deg, #c8a83c, #f5d675)" } : {}}
-            >
-              Dia {d} — {d === 1 ? "15 Maio" : "16 Maio"}
-            </button>
-          ))}
-        </div>
-
-        <div className="space-y-2">
-          {schedule[day].map((item, i) => (
-            <div key={i} className={`flex gap-4 p-4 rounded-2xl border ${typeColors[item.type]}`}>
-              <div className="flex-shrink-0 w-14 text-right">
-                <span className="text-xs font-mono font-bold opacity-80">{item.time}</span>
-              </div>
-              <div className="w-px bg-current opacity-20 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm leading-snug">{item.title}</p>
-                {item.speaker && (
-                  <p className="text-xs opacity-70 mt-0.5">🎤 {item.speaker}</p>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-center text-muted-foreground text-xs mt-6">
-          * Programa sujeito a alterações. Versão definitiva disponível na aplicação móvel CSA 2026.
         </p>
       </div>
     </section>
@@ -1013,17 +927,8 @@ function Footer() {
 
 export default function CongressPage() {
   const [toastVisible, setToastVisible] = useState(false);
-  const [settings, setSettings] = useState<CongressSettings>({
-    inscription_end_date: "2026-04-30",
-    congress_event_date: "2026-05-15",
-    congress_location: "Instituto de Tecnologia Agro-Alimentar, URNM, Angola",
-  });
-  const [links, setLinks] = useState<AppLink[]>([]);
-
-  useEffect(() => {
-    fetchSettings().then(setSettings);
-    fetchLinks().then(setLinks);
-  }, []);
+  const [settings] = useState<CongressSettings>(() => getSettings());
+  const [links] = useState<AppLink[]>(() => getLinks());
 
   const handleDownloadClick = useCallback(() => {
     setToastVisible(true);
@@ -1037,7 +942,6 @@ export default function CongressPage() {
       <ThematicAxesSection />
       <CallForPapersSection />
       <SpeakersSection />
-      <ProgrammeSection />
       <PricingSection />
       <DownloadSection onDownloadClick={handleDownloadClick} links={links} />
       <Footer />

@@ -1,6 +1,13 @@
 import { Router, type IRouter } from "express";
-import { db, csaSettingsTable, csaLinksTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { db, csaSettingsTable, csaLinksTable, csaImportantDatesTable } from "@workspace/db";
+import { eq, asc } from "drizzle-orm";
+
+const DEFAULT_PIN = "admin2026";
+
+function normalizePin(p: string | undefined | null): string {
+  const s = typeof p === "string" ? p.trim() : "";
+  return s || DEFAULT_PIN;
+}
 
 const router: IRouter = Router();
 
@@ -27,11 +34,11 @@ async function getPin(): Promise<string> {
     .from(csaSettingsTable)
     .where(eq(csaSettingsTable.key, "admin_pin"))
     .limit(1);
-  return row[0]?.value ?? "admin2026";
+  return normalizePin(row[0]?.value);
 }
 
 function requirePin(pinFromReq: string | undefined, correctPin: string): boolean {
-  return pinFromReq === correctPin;
+  return normalizePin(pinFromReq) === normalizePin(correctPin);
 }
 
 /* ─── GET /api/csa/settings ────────────────────────────────────────────────── */
@@ -89,9 +96,9 @@ router.put("/settings", async (req, res) => {
 router.post("/verify-pin", async (req, res) => {
   try {
     await ensureDefaults();
-    const { pin } = req.body as { pin: string };
+    const { pin } = (req.body as { pin?: string }) ?? {};
     const correctPin = await getPin();
-    if (pin === correctPin) {
+    if (normalizePin(pin) === correctPin) {
       res.json({ ok: true });
     } else {
       res.status(401).json({ ok: false, error: "PIN incorrecto" });
@@ -194,6 +201,92 @@ router.delete("/links/:id", async (req, res) => {
 
     const id = Number(req.params.id);
     await db.delete(csaLinksTable).where(eq(csaLinksTable.id, id));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+/* ─── GET /api/csa/dates ────────────────────────────────────────────────────── */
+router.get("/dates", async (_req, res) => {
+  try {
+    const dates = await db
+      .select()
+      .from(csaImportantDatesTable)
+      .orderBy(asc(csaImportantDatesTable.sortOrder), asc(csaImportantDatesTable.createdAt));
+    res.json({ ok: true, dates });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+/* ─── POST /api/csa/dates ──────────────────────────────────────────────────── */
+router.post("/dates", async (req, res) => {
+  try {
+    const pin = req.headers["x-admin-pin"] as string;
+    const correctPin = await getPin();
+    if (!requirePin(pin, correctPin)) {
+      res.status(401).json({ ok: false, error: "PIN incorrecto" });
+      return;
+    }
+    const { label, date, done, sortOrder } = req.body as { label?: string; date?: string; done?: boolean; sortOrder?: number };
+    const [entry] = await db
+      .insert(csaImportantDatesTable)
+      .values({
+        label: label ?? "",
+        date: date ?? "",
+        done: done ?? false,
+        sortOrder: sortOrder ?? 0,
+      })
+      .returning();
+    res.json({ ok: true, date: entry });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+/* ─── PUT /api/csa/dates/:id ───────────────────────────────────────────────── */
+router.put("/dates/:id", async (req, res) => {
+  try {
+    const pin = req.headers["x-admin-pin"] as string;
+    const correctPin = await getPin();
+    if (!requirePin(pin, correctPin)) {
+      res.status(401).json({ ok: false, error: "PIN incorrecto" });
+      return;
+    }
+    const id = Number(req.params.id);
+    const { label, date, done, sortOrder } = req.body as { label?: string; date?: string; done?: boolean; sortOrder?: number };
+    const updates: Partial<typeof csaImportantDatesTable.$inferInsert> = {};
+    if (label !== undefined) updates.label = label;
+    if (date !== undefined) updates.date = date;
+    if (done !== undefined) updates.done = done;
+    if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+    const [entry] = await db
+      .update(csaImportantDatesTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(csaImportantDatesTable.id, id))
+      .returning();
+    res.json({ ok: true, date: entry });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+/* ─── DELETE /api/csa/dates/:id ────────────────────────────────────────────── */
+router.delete("/dates/:id", async (req, res) => {
+  try {
+    const pin = req.headers["x-admin-pin"] as string;
+    const correctPin = await getPin();
+    if (!requirePin(pin, correctPin)) {
+      res.status(401).json({ ok: false, error: "PIN incorrecto" });
+      return;
+    }
+    const id = Number(req.params.id);
+    await db.delete(csaImportantDatesTable).where(eq(csaImportantDatesTable.id, id));
     res.json({ ok: true });
   } catch (err) {
     console.error(err);

@@ -1,4 +1,4 @@
-import { pgTable, text, serial, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, timestamp, boolean, integer } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -26,3 +26,34 @@ export const csaLinksTable = pgTable("csa_links", {
 export const insertCsaLinkSchema = createInsertSchema(csaLinksTable).omit({ id: true, createdAt: true, updatedAt: true });
 export type InsertCsaLink = z.infer<typeof insertCsaLinkSchema>;
 export type CsaLink = typeof csaLinksTable.$inferSelect;
+
+export const csaImportantDatesTable = pgTable("csa_important_dates", {
+  id: serial("id").primaryKey(),
+  label: text("label").notNull(),
+  date: text("date").notNull(),
+  done: boolean("done").notNull().default(false),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
+});
+
+export const insertCsaImportantDateSchema = createInsertSchema(csaImportantDatesTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertCsaImportantDate = z.infer<typeof insertCsaImportantDateSchema>;
+export type CsaImportantDate = typeof csaImportantDatesTable.$inferSelect;
+
+export const csaSpeakersTable = pgTable("csa_speakers", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  role: text("role").notNull(),
+  area: text("area").notNull(),
+  country: text("country").notNull(),
+  initials: text("initials").notNull(),
+  active: boolean("active").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
+});
+
+export const insertCsaSpeakerSchema = createInsertSchema(csaSpeakersTable).omit({ id: true, createdAt: true, updatedAt: true });
+export type InsertCsaSpeaker = z.infer<typeof insertCsaSpeakerSchema>;
+export type CsaSpeaker = typeof csaSpeakersTable.$inferSelect;
