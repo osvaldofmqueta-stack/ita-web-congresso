@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { fetchSettings, fetchLinks, fetchDates, fetchSpeakers, getSpeakerPhotoUrl, type CongressSettings, type AppLink, type ImportantDate, type Speaker } from "@/lib/api";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import { AntiGravityParticles } from "@/components/AntiGravityParticles";
 
 const CONGRESS_NAME = "Congresso do Sector Agro-Alimentar";
 const CONGRESS_ABBR = "CSA 2026";
@@ -347,8 +348,10 @@ function HeroSection({
 
 function AppSection({ onDownloadClick }: { onDownloadClick: () => void }) {
   const [imgError, setImgError] = useState(false);
+  const sectionRef = useRef<HTMLElement>(null);
   return (
     <section
+      ref={sectionRef}
       id="aplicacao"
       className="py-24 relative overflow-hidden"
       style={{ background: "linear-gradient(135deg, #0a1437 0%, #0f1e50 100%)" }}
@@ -358,6 +361,11 @@ function AppSection({ onDownloadClick }: { onDownloadClick: () => void }) {
           style={{ background: "radial-gradient(circle, #c8a83c, transparent 70%)" }} />
         <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10"
           style={{ background: "radial-gradient(circle, #c8a83c, transparent 70%)" }} />
+      </div>
+
+      {/* Efeito anti-gravity que segue o rato */}
+      <div className="absolute inset-0 z-[1] opacity-70">
+        <AntiGravityParticles containerRef={sectionRef} />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -397,14 +405,29 @@ function AppSection({ onDownloadClick }: { onDownloadClick: () => void }) {
             </button>
           </div>
 
-          <div className="flex justify-center order-1 lg:order-2">
+          {/* iPhone 17 Pro Max mockup */}
+          <div className="flex justify-center order-1 lg:order-2 relative z-10">
             <div
-              className="relative w-full max-w-[280px] rounded-[2.5rem] p-2.5 shadow-2xl border-[14px] border-neutral-800 bg-neutral-900"
-              style={{ boxShadow: "0 25px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)" }}
+              className="relative w-full max-w-[300px] rounded-[2.75rem] overflow-visible"
+              style={{
+                background: "linear-gradient(145deg, #3d3d42 0%, #2d2d32 50%, #1a1a1e 100%)",
+                boxShadow: "0 0 0 6px #2a2a2e, 0 0 0 8px #1a1a1d, 0 40px 100px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1)",
+                padding: "6px 6px 8px 6px",
+              }}
             >
-              <div className="rounded-[2rem] overflow-hidden bg-black aspect-[9/19] flex items-center justify-center">
+              {/* Dynamic Island */}
+              <div
+                className="absolute top-4 left-1/2 -translate-x-1/2 z-20 rounded-full"
+                style={{
+                  width: "100px",
+                  height: "32px",
+                  background: "#000",
+                  boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.05)",
+                }}
+              />
+              <div className="rounded-[2.25rem] overflow-hidden bg-black" style={{ aspectRatio: "19.5/42" }}>
                 {imgError ? (
-                  <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center" style={{ background: "linear-gradient(135deg, #0a1437 0%, #0f1e50 100%)" }}>
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center min-h-[420px]" style={{ background: "linear-gradient(135deg, #0a1437 0%, #0f1e50 100%)" }}>
                     <div className="w-14 h-14 rounded-2xl gold-gradient flex items-center justify-center">
                       <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
                     </div>
@@ -413,8 +436,8 @@ function AppSection({ onDownloadClick }: { onDownloadClick: () => void }) {
                   </div>
                 ) : (
                   <img
-                    src="/app-preview.png"
-                    alt="Preview da aplicação CSA 2026 — ecrã de login"
+                    src="/mobile-csa.jpeg"
+                    alt="Aplicação CSA 2026 — iPhone 17 Pro Max"
                     className="w-full h-full object-cover object-top"
                     onError={() => setImgError(true)}
                   />
