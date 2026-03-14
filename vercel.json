@@ -1,6 +1,6 @@
 {
-  "buildCommand": "pnpm install && pnpm --filter @workspace/csa-2026 run build",
-  "outputDirectory": "artifacts/csa-2026/dist",
+  "buildCommand": "pnpm install && pnpm --filter @workspace/csa-2026 run build && rm -rf dist && cp -r artifacts/csa-2026/dist ./dist",
+  "outputDirectory": "dist",
   "installCommand": "pnpm install",
   "framework": null,
   "env": {
