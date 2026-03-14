@@ -840,7 +840,18 @@ function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
 
 /* ─── Pricing ─────────────────────────────────────────────────────────────── */
 
-function PricingSection() {
+const DEFAULT_PRICING = {
+  categories: [
+    { label: "Docentes/Investigadores", spectatorPrices: { urnm: "5.000", ext: "7.000" } },
+    { label: "Estudantes", spectatorPrices: { urnm: "3.000", ext: "4.000" } },
+    { label: "Outros", spectatorPrices: { urnm: "5.000", ext: "10.000" } },
+  ],
+  prelectoresPrice: "20.000",
+};
+
+function PricingSection({ settings }: { settings: CongressSettings }) {
+  const pricing = settings.registration_pricing ?? DEFAULT_PRICING;
+
   return (
     <section className="py-24 bg-background text-foreground">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -855,14 +866,15 @@ function PricingSection() {
 
         <div className="max-w-4xl mx-auto">
           <div className="rounded-3xl overflow-hidden shadow-2xl border border-white/10">
-            <div className="navy-gradient p-6">
+            {/* Header — visível apenas em desktop */}
+            <div className="navy-gradient p-4 md:p-6 hidden md:block">
               <div className="grid grid-cols-4 gap-4 text-center">
                 <div className="text-left">
                   <p className="text-yellow-300/70 text-xs uppercase tracking-wider font-medium">Categoria</p>
                 </div>
-                {["Docentes/Investigadores", "Estudantes", "Outros"].map((col) => (
-                  <div key={col}>
-                    <p className="text-yellow-300 text-xs uppercase tracking-wider font-bold">{col}</p>
+                {pricing.categories.map((c) => (
+                  <div key={c.label}>
+                    <p className="text-yellow-300 text-xs uppercase tracking-wider font-bold">{c.label}</p>
                     <div className="flex justify-center gap-2 mt-1">
                       <span className="text-white/50 text-xs">URNM</span>
                       <span className="text-white/30 text-xs">/</span>
@@ -874,42 +886,62 @@ function PricingSection() {
             </div>
 
             <div className="bg-card divide-y divide-border/50">
-              <div className="p-6">
-                <div className="grid grid-cols-4 gap-4 items-center">
-                  <div>
-                    <p className="font-semibold text-foreground">Espectadores</p>
+              {/* Espectadores — mobile: cards empilhados | desktop: tabela */}
+              <div className="p-4 md:p-6">
+                <p className="font-semibold text-foreground mb-4 md:mb-0 md:sr-only">Espectadores</p>
+                <div className="flex flex-col md:contents gap-4">
+                  {/* Mobile: cada categoria como card */}
+                  <div className="flex flex-col md:hidden space-y-3">
+                    {pricing.categories.map((c, i) => (
+                      <div key={c.label} className="flex items-center justify-between p-4 rounded-xl bg-muted/30 border border-border/50">
+                        <p className="text-sm font-medium text-foreground">{c.label}</p>
+                        <div className="flex items-center gap-4">
+                          <div className="text-center">
+                            <p className="font-bold text-primary text-sm">{c.spectatorPrices.urnm} Kz</p>
+                            <p className="text-xs text-muted-foreground">URNM</p>
+                          </div>
+                          <div className="w-px h-8 bg-border/60" />
+                          <div className="text-center">
+                            <p className="font-bold text-foreground/80 text-sm">{c.spectatorPrices.ext} Kz</p>
+                            <p className="text-xs text-muted-foreground">Externo</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                  {[
-                    { urnm: "5.000", ext: "7.000" },
-                    { urnm: "3.000", ext: "4.000" },
-                    { urnm: "5.000", ext: "10.000" },
-                  ].map((item, i) => (
-                    <div key={i} className="flex justify-center gap-4 text-center">
-                      <div>
-                        <p className="font-bold text-primary text-sm">{item.urnm} Kz</p>
-                        <p className="text-xs text-muted-foreground">URNM</p>
-                      </div>
-                      <div className="w-px bg-border/60" />
-                      <div>
-                        <p className="font-bold text-foreground/80 text-sm">{item.ext} Kz</p>
-                        <p className="text-xs text-muted-foreground">Externo</p>
-                      </div>
+                  {/* Desktop: layout tabela */}
+                  <div className="hidden md:grid grid-cols-4 gap-4 items-center">
+                    <div>
+                      <p className="font-semibold text-foreground">Espectadores</p>
                     </div>
-                  ))}
+                    {pricing.categories.map((c) => (
+                      <div key={c.label} className="flex justify-center gap-4 text-center">
+                        <div>
+                          <p className="font-bold text-primary text-sm">{c.spectatorPrices.urnm} Kz</p>
+                          <p className="text-xs text-muted-foreground">URNM</p>
+                        </div>
+                        <div className="w-px bg-border/60" />
+                        <div>
+                          <p className="font-bold text-foreground/80 text-sm">{c.spectatorPrices.ext} Kz</p>
+                          <p className="text-xs text-muted-foreground">Externo</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="p-6">
-                <div className="flex items-center justify-between">
+              <div className="p-4 md:p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
                     <p className="font-semibold text-foreground">
                       Prelectores{" "}
                       <span className="text-muted-foreground font-normal text-sm">(autores)</span>
                     </p>
                   </div>
-                  <div className="text-center">
+                  <div className="text-center sm:text-right">
                     <span className="inline-flex items-center px-6 py-2 rounded-full gold-gradient text-[#0a1437] font-bold text-lg shadow-lg">
-                      20.000 Kz
+                      {pricing.prelectoresPrice} Kz
                     </span>
                     <p className="text-xs text-muted-foreground mt-1">Tarifa única</p>
                   </div>
@@ -1140,6 +1172,7 @@ export default function CongressPage() {
     congress_event_date: "",
     congress_location: "",
     accepted_formats: [],
+    registration_pricing: null,
   });
   const [links, setLinks] = useState<AppLink[]>([]);
   const [speakers, setSpeakers] = useState<Speaker[]>([]);
@@ -1163,7 +1196,7 @@ export default function CongressPage() {
       <ThematicAxesSection />
       <CallForPapersSection settings={settings} />
       <SpeakersSection speakers={speakers} />
-      <PricingSection />
+      <PricingSection settings={settings} />
       <DownloadSection onDownloadClick={handleDownloadClick} links={links} />
       <Footer settings={settings} />
       <ComingSoonToast visible={toastVisible} onClose={() => setToastVisible(false)} />

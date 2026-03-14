@@ -32,6 +32,16 @@ export interface AcceptedFormat {
   color: string;
 }
 
+export interface RegistrationPricingCategory {
+  label: string;
+  spectatorPrices: { urnm: string; ext: string };
+}
+
+export interface RegistrationPricing {
+  categories: RegistrationPricingCategory[];
+  prelectoresPrice: string;
+}
+
 export interface CongressSettings {
   congress_name: string;
   congress_abbr: string;
@@ -42,6 +52,7 @@ export interface CongressSettings {
   congress_event_date: string;
   congress_location: string;
   accepted_formats: AcceptedFormat[];
+  registration_pricing: RegistrationPricing | null;
 }
 
 export interface AppLink {
@@ -81,6 +92,24 @@ export interface Speaker {
   updatedAt: string;
 }
 
+function parseRegistrationPricing(val: unknown): RegistrationPricing | null {
+  if (!val) return null;
+  try {
+    const o = typeof val === "string" ? JSON.parse(val) : val;
+    if (!o || typeof o !== "object" || !Array.isArray(o.categories) || typeof o.prelectoresPrice !== "string") return null;
+    return {
+      categories: o.categories.filter(
+        (c: unknown): c is RegistrationPricingCategory =>
+          c != null && typeof c === "object" && typeof (c as { label?: unknown }).label === "string" &&
+          (c as { spectatorPrices?: unknown }).spectatorPrices != null
+      ),
+      prelectoresPrice: o.prelectoresPrice,
+    };
+  } catch {
+    return null;
+  }
+}
+
 function parseAcceptedFormats(val: unknown): AcceptedFormat[] {
   if (!val) return [];
   try {
@@ -105,6 +134,7 @@ const EMPTY_SETTINGS: CongressSettings = {
   congress_event_date: "",
   congress_location: "",
   accepted_formats: [],
+  registration_pricing: null,
 };
 
 export async function fetchSettings(): Promise<CongressSettings> {
@@ -123,6 +153,7 @@ export async function fetchSettings(): Promise<CongressSettings> {
       congress_event_date: s.congress_event_date ?? "",
       congress_location: s.congress_location ?? "",
       accepted_formats: parseAcceptedFormats(s.accepted_formats),
+      registration_pricing: parseRegistrationPricing(s.registration_pricing),
     };
   } catch {
     return { ...EMPTY_SETTINGS };
