@@ -1,6 +1,44 @@
 import { Router, type IRouter } from "express";
-import { db, csaSettingsTable, csaLinksTable, csaImportantDatesTable } from "@workspace/db";
+import path from "path";
+import { fileURLToPath } from "url";
+import fs from "fs";
+import multer from "multer";
+import { db, csaSettingsTable, csaLinksTable, csaImportantDatesTable, csaSpeakersTable } from "@workspace/db";
 import { eq, asc } from "drizzle-orm";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const UPLOADS_DIR = path.join(__dirname, "..", "..", "uploads", "speakers");
+const ALLOWED_MIMES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+function ensureUploadsDir() {
+  if (!fs.existsSync(UPLOADS_DIR)) {
+    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  }
+}
+
+const storage = multer.diskStorage({
+  destination(_req, _file, cb) {
+    ensureUploadsDir();
+    cb(null, UPLOADS_DIR);
+  },
+  filename(_req, file, cb) {
+    const ext = path.extname(file.originalname) || ".jpg";
+    const safeExt = [".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(ext.toLowerCase()) ? ext : ".jpg";
+    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${safeExt}`;
+    cb(null, name);
+  },
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(_req, file, cb) {
+    if (ALLOWED_MIMES.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Apenas imagens (JPEG, PNG, WebP, GIF) são permitidas"));
+    }
+  },
+});
 
 const DEFAULT_PIN = "admin2026";
 
@@ -288,6 +326,164 @@ router.delete("/dates/:id", async (req, res) => {
     const id = Number(req.params.id);
     await db.delete(csaImportantDatesTable).where(eq(csaImportantDatesTable.id, id));
     res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+/* ─── GET /api/csa/speakers ────────────────────────────────────────────────── */
+router.get("/speakers", async (_req, res) => {
+  try {
+    const rows = await db
+      .select()
+      .from(csaSpeakersTable)
+      .where(eq(csaSpeakersTable.active, true))
+      .orderBy(asc(csaSpeakersTable.sortOrder), asc(csaSpeakersTable.createdAt));
+    res.json({ ok: true, speakers: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+/* ─── GET /api/csa/speakers/all (admin: todos, incluindo inativos) ─────────── */
+router.get("/speakers/all", async (req, res) => {
+  try {
+    const pin = req.headers["x-admin-pin"] as string;
+    const correctPin = await getPin();
+    if (!requirePin(pin, correctPin)) {
+      res.status(401).json({ ok: false, error: "PIN incorrecto" });
+      return;
+    }
+    const rows = await db
+      .select()
+      .from(csaSpeakersTable)
+      .orderBy(asc(csaSpeakersTable.sortOrder), asc(csaSpeakersTable.createdAt));
+    res.json({ ok: true, speakers: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+/* ─── POST /api/csa/speakers ───────────────────────────────────────────────── */
+router.post("/speakers", async (req, res) => {
+  try {
+    const pin = req.headers["x-admin-pin"] as string;
+    const correctPin = await getPin();
+    if (!requirePin(pin, correctPin)) {
+      res.status(401).json({ ok: false, error: "PIN incorrecto" });
+      return;
+    }
+    const { name, role, area, country, initials, photoUrl, category, academicDegree, origin, active, sortOrder } = req.body as {
+      name?: string; role?: string; area?: string; country?: string; initials?: string;
+      photoUrl?: string; category?: string; academicDegree?: string; origin?: string;
+      active?: boolean; sortOrder?: number;
+    };
+    const [speaker] = await db
+      .insert(csaSpeakersTable)
+      .values({
+        name: name ?? "",
+        role: role ?? "",
+        area: area ?? "",
+        country: country ?? "",
+        initials: initials ?? "",
+        photoUrl: photoUrl ?? null,
+        category: category ?? null,
+        academicDegree: academicDegree ?? null,
+        origin: origin ?? null,
+        active: active ?? true,
+        sortOrder: sortOrder ?? 0,
+      })
+      .returning();
+    res.json({ ok: true, speaker });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+/* ─── PUT /api/csa/speakers/:id ─────────────────────────────────────────────── */
+router.put("/speakers/:id", async (req, res) => {
+  try {
+    const pin = req.headers["x-admin-pin"] as string;
+    const correctPin = await getPin();
+    if (!requirePin(pin, correctPin)) {
+      res.status(401).json({ ok: false, error: "PIN incorrecto" });
+      return;
+    }
+    const id = Number(req.params.id);
+    const { name, role, area, country, initials, photoUrl, category, academicDegree, origin, active, sortOrder } = req.body as {
+      name?: string; role?: string; area?: string; country?: string; initials?: string;
+      photoUrl?: string; category?: string; academicDegree?: string; origin?: string;
+      active?: boolean; sortOrder?: number;
+    };
+    const updates: Partial<typeof csaSpeakersTable.$inferInsert> = {};
+    if (name !== undefined) updates.name = name;
+    if (role !== undefined) updates.role = role;
+    if (area !== undefined) updates.area = area;
+    if (country !== undefined) updates.country = country;
+    if (initials !== undefined) updates.initials = initials;
+    if (photoUrl !== undefined) updates.photoUrl = photoUrl;
+    if (category !== undefined) updates.category = category;
+    if (academicDegree !== undefined) updates.academicDegree = academicDegree;
+    if (origin !== undefined) updates.origin = origin;
+    if (active !== undefined) updates.active = active;
+    if (sortOrder !== undefined) updates.sortOrder = sortOrder;
+    const [speaker] = await db
+      .update(csaSpeakersTable)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(csaSpeakersTable.id, id))
+      .returning();
+    res.json({ ok: true, speaker });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+/* ─── DELETE /api/csa/speakers/:id ─────────────────────────────────────────── */
+router.delete("/speakers/:id", async (req, res) => {
+  try {
+    const pin = req.headers["x-admin-pin"] as string;
+    const correctPin = await getPin();
+    if (!requirePin(pin, correctPin)) {
+      res.status(401).json({ ok: false, error: "PIN incorrecto" });
+      return;
+    }
+    const id = Number(req.params.id);
+    await db.delete(csaSpeakersTable).where(eq(csaSpeakersTable.id, id));
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ ok: false, error: "Server error" });
+  }
+});
+
+/* ─── POST /api/csa/upload-photo (foto do palestrante, ficheiro local) ──────── */
+router.post("/upload-photo", async (req, res) => {
+  try {
+    const pin = req.headers["x-admin-pin"] as string;
+    const correctPin = await getPin();
+    if (!requirePin(pin, correctPin)) {
+      res.status(401).json({ ok: false, error: "PIN incorrecto" });
+      return;
+    }
+    upload.single("photo")(req, res, (err: unknown) => {
+      if (err) {
+        const msg = err instanceof Error ? err.message : "Erro no upload";
+        res.status(400).json({ ok: false, error: msg });
+        return;
+      }
+      const file = (req as unknown as { file?: multer.File }).file;
+      if (!file) {
+        res.status(400).json({ ok: false, error: "Nenhum ficheiro enviado. Use o campo 'photo'." });
+        return;
+      }
+      const url = `/uploads/speakers/${file.filename}`;
+      res.json({ ok: true, url });
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ ok: false, error: "Server error" });

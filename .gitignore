@@ -47,3 +47,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Uploaded speaker photos (api-server)
+artifacts/api-server/uploads/

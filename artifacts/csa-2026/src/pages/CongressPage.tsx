@@ -1,11 +1,21 @@
 import { useState, useEffect, useCallback } from "react";
-import { getSettings, getLinks, fetchDates, type CongressSettings, type AppLink, type ImportantDate } from "@/lib/api";
+import { fetchSettings, fetchLinks, fetchDates, fetchSpeakers, getSpeakerPhotoUrl, type CongressSettings, type AppLink, type ImportantDate, type Speaker } from "@/lib/api";
 
 const CONGRESS_NAME = "Congresso do Sector Agro-Alimentar";
 const CONGRESS_ABBR = "CSA 2026";
 const INSTITUTE = "Instituto de Tecnologia Agro-Alimentar";
 const UNIVERSITY = "Universidade Rainha Njinga a Mbande";
 const UNIVERSITY_ABBR = "URNM";
+
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+function formatShortDate(iso: string): string {
+  const d = new Date(iso + "T12:00:00Z");
+  if (isNaN(d.getTime())) return iso;
+  const day = d.getUTCDate();
+  const month = MESES[d.getUTCMonth()];
+  const year = d.getUTCFullYear();
+  return `${day} ${month} ${year}`;
+}
 
 const thematicAxes = [
   {
@@ -260,7 +270,7 @@ function HeroSection({
 
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-400/15 border border-yellow-400/30 text-yellow-300 text-xs sm:text-sm font-medium mb-6 backdrop-blur-sm whitespace-nowrap">
           <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse flex-shrink-0" />
-          Inscrições Abertas · 01 Março — 31 Abril 2026
+          Inscrições Abertas · até {formatShortDate(settings.inscription_end_date)}
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold text-white mb-4 leading-tight">
@@ -332,7 +342,7 @@ function HeroSection({
 
 /* ─── About ───────────────────────────────────────────────────────────────── */
 
-function AboutSection() {
+function AboutSection({ settings }: { settings: CongressSettings }) {
   return (
     <section id="sobre" className="py-24 bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -355,15 +365,15 @@ function AboutSection() {
               <strong className="text-foreground">{UNIVERSITY}</strong>, que reúne investigadores, docentes, estudantes e profissionais do sector agro-alimentar angolano.
             </p>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              O congresso decorre no <strong className="text-foreground">{INSTITUTE}</strong>. As inscrições e submissão de trabalhos realizam-se exclusivamente através da aplicação móvel, de{" "}
-              <strong className="text-foreground">01 de Março a 31 de Abril de 2026</strong>.
+              O congresso decorre no <strong className="text-foreground">{settings.congress_location || INSTITUTE}</strong>. As inscrições e submissão de trabalhos realizam-se exclusivamente através da aplicação móvel, até{" "}
+              <strong className="text-foreground">{formatShortDate(settings.inscription_end_date)}</strong>. O evento decorre a <strong className="text-foreground">{formatShortDate(settings.congress_event_date)}</strong>.
             </p>
 
             <div className="grid grid-cols-2 gap-4">
               {[
-                { label: "Local", value: INSTITUTE, icon: "📍" },
+                { label: "Local", value: settings.congress_location || INSTITUTE, icon: "📍" },
                 { label: "Instituição", value: UNIVERSITY_ABBR, icon: "🎓" },
-                { label: "Inscrições", value: "01 Mar – 31 Abr 2026", icon: "📅" },
+                { label: "Inscrições", value: `até ${formatShortDate(settings.inscription_end_date)}`, icon: "📅" },
                 { label: "Candidatura", value: "App Móvel", icon: "📱" },
               ].map((info) => (
                 <div key={info.label} className="p-4 rounded-2xl bg-card border border-border/60 card-hover">
@@ -466,22 +476,15 @@ function ThematicAxesSection() {
 
 /* ─── Call for Papers ─────────────────────────────────────────────────────── */
 
-const DEFAULT_DEADLINES: { label: string; date: string; done: boolean }[] = [
-  { label: "Submissão de resumos", date: "15 Mar 2026", done: true },
-  { label: "Notificação de aceitação", date: "01 Abr 2026", done: false },
-  { label: "Versão final dos artigos", date: "20 Abr 2026", done: false },
-  { label: "Encerramento das inscrições", date: "30 Abr 2026", done: false },
-  { label: "Congresso CSA 2026", date: "15–16 Mai 2026", done: false },
-];
-
 function CallForPapersSection() {
-  const [deadlines, setDeadlines] = useState<{ label: string; date: string; done: boolean }[]>(DEFAULT_DEADLINES);
+  const [deadlines, setDeadlines] = useState<ImportantDate[]>([]);
+  const [loadingDates, setLoadingDates] = useState(true);
 
   useEffect(() => {
+    setLoadingDates(true);
     fetchDates().then((dates) => {
-      if (dates.length > 0) {
-        setDeadlines(dates.map((d) => ({ label: d.label, date: d.date, done: d.done })));
-      }
+      setDeadlines(dates);
+      setLoadingDates(false);
     });
   }, []);
 
@@ -507,38 +510,44 @@ function CallForPapersSection() {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-12 items-start">
-          {/* Timeline */}
+          {/* Timeline — apenas dados configurados no admin */}
           <div>
             <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
               <span className="text-2xl">📅</span> Datas Importantes
             </h3>
-            <div className="space-y-4">
-              {deadlines.map((d, i) => (
-                <div key={i} className="flex items-center gap-4">
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                    d.done ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary"
-                  }`}>
-                    {d.done ? (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
-                    ) : (
-                      <span className="text-xs font-bold">{i + 1}</span>
-                    )}
-                  </div>
-                  <div className={`flex-1 flex items-center justify-between p-3.5 rounded-xl border ${
-                    d.done ? "bg-green-50 border-green-200" : "bg-card border-border"
-                  }`}>
-                    <span className={`text-sm font-medium ${d.done ? "text-green-700 line-through opacity-70" : "text-foreground"}`}>
-                      {d.label}
-                    </span>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                      d.done ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary"
+            {loadingDates ? (
+              <p className="text-muted-foreground text-sm">A carregar datas...</p>
+            ) : deadlines.length === 0 ? (
+              <p className="text-muted-foreground text-sm py-4">As datas importantes serão anunciadas em breve. Configure-as na área administrativa.</p>
+            ) : (
+              <div className="space-y-4">
+                {deadlines.map((d, i) => (
+                  <div key={d.id} className="flex items-center gap-4">
+                    <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      d.done ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary"
                     }`}>
-                      {d.date}
-                    </span>
+                      {d.done ? (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+                      ) : (
+                        <span className="text-xs font-bold">{i + 1}</span>
+                      )}
+                    </div>
+                    <div className={`flex-1 flex items-center justify-between p-3.5 rounded-xl border ${
+                      d.done ? "bg-green-50 border-green-200" : "bg-card border-border"
+                    }`}>
+                      <span className={`text-sm font-medium ${d.done ? "text-green-700 line-through opacity-70" : "text-foreground"}`}>
+                        {d.label}
+                      </span>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
+                        d.done ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary"
+                      }`}>
+                        {d.date}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Formats & Topics */}
@@ -576,14 +585,7 @@ function CallForPapersSection() {
 
 /* ─── Speakers ────────────────────────────────────────────────────────────── */
 
-function SpeakersSection() {
-  const speakers = [
-    { name: "A confirmar", role: "Keynote Speaker", area: "Segurança Alimentar", country: "🇦🇴 Angola", initials: "?" },
-    { name: "A confirmar", role: "Keynote Speaker", area: "Agro-industria", country: "🇵🇹 Portugal", initials: "?" },
-    { name: "A confirmar", role: "Convidado Especial", area: "Políticas Alimentares", country: "🇧🇷 Brasil", initials: "?" },
-    { name: "A confirmar", role: "Convidado Especial", area: "Tecnologia Alimentar", country: "🌍 Internacional", initials: "?" },
-  ];
-
+function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
   return (
     <section
       id="palestrantes"
@@ -609,27 +611,44 @@ function SpeakersSection() {
         </div>
 
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {speakers.map((s, i) => (
-            <div key={i} className="glass-card rounded-3xl p-6 text-center card-hover border border-white/10 hover:border-yellow-400/25">
-              <div
-                className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl font-bold"
-                style={{ background: "linear-gradient(135deg, rgba(200,168,60,0.2), rgba(200,168,60,0.05))", border: "2px solid rgba(200,168,60,0.2)" }}
-              >
-                <span className="text-yellow-300 text-2xl">{s.initials}</span>
+          {speakers.length === 0 ? (
+            <p className="col-span-full text-center text-white/40 text-sm py-8">
+              A lista completa de palestrantes será publicada brevemente
+            </p>
+          ) : (
+            speakers.map((s) => (
+              <div key={s.id} className="glass-card rounded-3xl p-6 text-center card-hover border border-white/10 hover:border-yellow-400/25">
+                <div
+                  className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl font-bold overflow-hidden bg-white/5"
+                  style={{ border: "2px solid rgba(200,168,60,0.2)" }}
+                >
+                  {s.photoUrl ? (
+                    <img src={getSpeakerPhotoUrl(s.photoUrl)} alt={s.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-yellow-300 text-2xl">{s.initials || "?"}</span>
+                  )}
+                </div>
+                <p className="text-white/40 text-xs mb-1">{s.country}</p>
+                {s.academicDegree && (
+                  <p className="text-yellow-400/80 text-xs mb-0.5">{s.academicDegree}</p>
+                )}
+                <h4 className="text-white font-bold text-sm mb-1">{s.name}</h4>
+                <p className="text-yellow-300/70 text-xs font-medium mb-2">{s.role}</p>
+                {s.category && (
+                  <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs mb-1">
+                    {s.category}
+                  </span>
+                )}
+                <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 text-xs">
+                  {s.area}
+                </span>
+                {s.origin && (
+                  <p className="text-white/40 text-xs mt-2 uppercase tracking-wider">{s.origin}</p>
+                )}
               </div>
-              <p className="text-white/40 text-xs mb-1">{s.country}</p>
-              <h4 className="text-white font-bold text-sm mb-1">{s.name}</h4>
-              <p className="text-yellow-300/70 text-xs font-medium mb-2">{s.role}</p>
-              <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 text-xs">
-                {s.area}
-              </span>
-            </div>
-          ))}
+            ))
+          )}
         </div>
-
-        <p className="text-center text-white/30 text-sm mt-10">
-          A lista completa de palestrantes será publicada brevemente
-        </p>
       </div>
     </section>
   );
@@ -927,8 +946,19 @@ function Footer() {
 
 export default function CongressPage() {
   const [toastVisible, setToastVisible] = useState(false);
-  const [settings] = useState<CongressSettings>(() => getSettings());
-  const [links] = useState<AppLink[]>(() => getLinks());
+  const [settings, setSettings] = useState<CongressSettings>({
+    inscription_end_date: "2026-04-30",
+    congress_event_date: "2026-05-15",
+    congress_location: "Instituto de Tecnologia Agro-Alimentar, URNM, Angola",
+  });
+  const [links, setLinks] = useState<AppLink[]>([]);
+  const [speakers, setSpeakers] = useState<Speaker[]>([]);
+
+  useEffect(() => {
+    fetchSettings().then(setSettings);
+    fetchLinks().then(setLinks);
+    fetchSpeakers().then(setSpeakers);
+  }, []);
 
   const handleDownloadClick = useCallback(() => {
     setToastVisible(true);
@@ -938,10 +968,10 @@ export default function CongressPage() {
     <div className="min-h-screen">
       <Navbar />
       <HeroSection onDownloadClick={handleDownloadClick} settings={settings} />
-      <AboutSection />
+      <AboutSection settings={settings} />
       <ThematicAxesSection />
       <CallForPapersSection />
-      <SpeakersSection />
+      <SpeakersSection speakers={speakers} />
       <PricingSection />
       <DownloadSection onDownloadClick={handleDownloadClick} links={links} />
       <Footer />
