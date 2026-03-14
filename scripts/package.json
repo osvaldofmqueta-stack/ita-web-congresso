@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "seed:pricing": "tsx ./src/seed-registration-pricing.ts",
+    "seed:admin-pin": "tsx ./src/seed-admin-pin.ts",
     "hello": "tsx ./src/hello.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },

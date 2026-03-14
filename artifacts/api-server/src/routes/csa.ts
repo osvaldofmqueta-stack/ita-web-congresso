@@ -57,7 +57,8 @@ async function getPin(): Promise<string> {
     .where(eq(csaSettingsTable.key, "admin_pin"))
     .limit(1);
   const value = normalizePin(row[0]?.value);
-  return value || INITIAL_PIN_IF_EMPTY;
+  // Usar PIN padrão se não existir na BD ou se estiver vazio
+  return value.length > 0 ? value : INITIAL_PIN_IF_EMPTY;
 }
 
 function requirePin(pinFromReq: string | undefined, correctPin: string): boolean {
@@ -119,7 +120,7 @@ router.post("/verify-pin", async (req, res) => {
   try {
     const { pin } = (req.body as { pin?: string }) ?? {};
     const correctPin = await getPin();
-    if (normalizePin(pin) === correctPin) {
+    if (normalizePin(pin) === normalizePin(correctPin)) {
       res.json({ ok: true });
     } else {
       res.status(401).json({ ok: false, error: "PIN incorrecto" });
