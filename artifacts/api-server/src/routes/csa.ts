@@ -9,6 +9,7 @@ import { eq, asc } from "drizzle-orm";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const UPLOADS_DIR = path.join(__dirname, "..", "..", "uploads", "speakers");
 const ALLOWED_MIMES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+const isVercel = typeof process.env.VERCEL === "string";
 
 function ensureUploadsDir() {
   if (!fs.existsSync(UPLOADS_DIR)) {
@@ -16,18 +17,20 @@ function ensureUploadsDir() {
   }
 }
 
-const storage = multer.diskStorage({
-  destination(_req, _file, cb) {
-    ensureUploadsDir();
-    cb(null, UPLOADS_DIR);
-  },
-  filename(_req, file, cb) {
-    const ext = path.extname(file.originalname) || ".jpg";
-    const safeExt = [".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(ext.toLowerCase()) ? ext : ".jpg";
-    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${safeExt}`;
-    cb(null, name);
-  },
-});
+const storage = isVercel
+  ? multer.memoryStorage()
+  : multer.diskStorage({
+      destination(_req, _file, cb) {
+        ensureUploadsDir();
+        cb(null, UPLOADS_DIR);
+      },
+      filename(_req, file, cb) {
+        const ext = path.extname(file.originalname) || ".jpg";
+        const safeExt = [".jpg", ".jpeg", ".png", ".webp", ".gif"].includes(ext.toLowerCase()) ? ext : ".jpg";
+        const name = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${safeExt}`;
+        cb(null, name);
+      },
+    });
 const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
@@ -465,7 +468,9 @@ router.post("/upload-photo", async (req, res) => {
         res.status(400).json({ ok: false, error: "Nenhum ficheiro enviado. Use o campo 'photo'." });
         return;
       }
-      const url = `/uploads/speakers/${file.filename}`;
+      const filename =
+        file.filename ?? `${Date.now()}-${Math.random().toString(36).slice(2, 10)}.jpg`;
+      const url = `/uploads/speakers/${filename}`;
       res.json({ ok: true, url });
     });
   } catch (err) {
