@@ -1,32 +1,23 @@
 /**
- * Vercel Serverless: encaminha todos os pedidos /api/* para a app Express (api-server).
- * No Vercel: a DATABASE_URL deve ser definida nas variáveis de ambiente
- * do projeto (Settings → Environment Variables) com a conexão PostgreSQL
- * (ex.: Neon, Supabase). Esta rota não lê ficheiro .env em produção.
+ * Handler /api/* no Vercel.
+ *
+ * Para este projeto (site estático do congresso) não há API ativa,
+ * então esta função apenas responde 404 para qualquer chamada.
+ *
+ * Isso evita que o Vercel tente compilar o servidor Express completo
+ * (artifacts/api-server), que não é necessário para o deploy do site.
  */
-
-type ExpressApp = (req: import("http").IncomingMessage, res: import("http").ServerResponse, next?: (err?: Error) => void) => void;
-
-let appPromise: Promise<ExpressApp> | null = null;
-
-function getApp(): Promise<ExpressApp> {
-  if (!appPromise) {
-    appPromise = import("../artifacts/api-server/src/app.js").then(
-      (m) => m.default as ExpressApp,
-    );
-  }
-  return appPromise;
-}
 
 export default async function handler(
   req: import("http").IncomingMessage & { url?: string },
-  res: import("http").ServerResponse
+  res: import("http").ServerResponse,
 ): Promise<void> {
-  const app = await getApp();
-  return new Promise((resolve, reject) => {
-    app(req, res, (err?: Error) => {
-      if (err) reject(err);
-      else resolve();
-    });
-  });
+  res.statusCode = 404;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.end(
+    JSON.stringify({
+      error: "API desativada neste deploy. O site funciona apenas com conteúdo estático.",
+      path: req.url ?? "",
+    }),
+  );
 }
