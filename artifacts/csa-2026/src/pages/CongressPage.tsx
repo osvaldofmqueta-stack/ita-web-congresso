@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { fetchSettings, fetchLinks, fetchDates, fetchSpeakers, getSpeakerPhotoUrl, type CongressSettings, type AppLink, type ImportantDate, type Speaker } from "@/lib/api";
+import {
+  STATIC_SETTINGS,
+  STATIC_LINKS,
+  STATIC_DATES,
+  STATIC_SPEAKERS,
+  getSpeakerPhotoUrl,
+  type CongressSettings,
+  type AppLink,
+  type ImportantDate,
+  type Speaker,
+} from "@/lib/static-data";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 import { AntiGravityParticles } from "@/components/AntiGravityParticles";
 
@@ -637,18 +647,7 @@ function ThematicAxesSection() {
 
 /* ─── Call for Papers ─────────────────────────────────────────────────────── */
 
-function CallForPapersSection({ settings }: { settings: CongressSettings }) {
-  const [deadlines, setDeadlines] = useState<ImportantDate[]>([]);
-  const [loadingDates, setLoadingDates] = useState(true);
-
-  useEffect(() => {
-    setLoadingDates(true);
-    fetchDates().then((dates) => {
-      setDeadlines(dates);
-      setLoadingDates(false);
-    });
-  }, []);
-
+function CallForPapersSection({ settings, deadlines }: { settings: CongressSettings; deadlines: ImportantDate[] }) {
   const formats = settings.accepted_formats && settings.accepted_formats.length > 0
     ? settings.accepted_formats
     : [
@@ -688,10 +687,8 @@ function CallForPapersSection({ settings }: { settings: CongressSettings }) {
             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <span className="text-2xl">📅</span> Datas Importantes
             </h3>
-            {loadingDates ? (
-              <p className="text-white/60 text-sm">A carregar datas...</p>
-            ) : deadlines.length === 0 ? (
-              <p className="text-white/60 text-sm py-4">As datas importantes serão anunciadas em breve. Serão anunciadas em breve.</p>
+            {deadlines.length === 0 ? (
+              <p className="text-white/60 text-sm py-4">Serão anunciadas em breve.</p>
             ) : (
               <div className="space-y-4">
                 {deadlines.map((d, i) => {
@@ -1162,26 +1159,6 @@ function Footer({ settings }: { settings: CongressSettings }) {
 
 export default function CongressPage() {
   const [toastVisible, setToastVisible] = useState(false);
-  const [settings, setSettings] = useState<CongressSettings>({
-    congress_name: "",
-    congress_abbr: "",
-    institution: "",
-    university: "",
-    university_abbr: "",
-    inscription_end_date: "",
-    congress_event_date: "",
-    congress_location: "",
-    accepted_formats: [],
-    registration_pricing: null,
-  });
-  const [links, setLinks] = useState<AppLink[]>([]);
-  const [speakers, setSpeakers] = useState<Speaker[]>([]);
-
-  useEffect(() => {
-    fetchSettings().then(setSettings);
-    fetchLinks().then(setLinks);
-    fetchSpeakers().then(setSpeakers);
-  }, []);
 
   const handleDownloadClick = useCallback(() => {
     setToastVisible(true);
@@ -1189,16 +1166,16 @@ export default function CongressPage() {
 
   return (
     <div className="dark min-h-screen bg-background">
-      <Navbar settings={settings} />
-      <HeroSection onDownloadClick={handleDownloadClick} settings={settings} />
-      <AboutSection settings={settings} />
+      <Navbar settings={STATIC_SETTINGS} />
+      <HeroSection onDownloadClick={handleDownloadClick} settings={STATIC_SETTINGS} />
+      <AboutSection settings={STATIC_SETTINGS} />
       <AppSection onDownloadClick={handleDownloadClick} />
       <ThematicAxesSection />
-      <CallForPapersSection settings={settings} />
-      <SpeakersSection speakers={speakers} />
-      <PricingSection settings={settings} />
-      <DownloadSection onDownloadClick={handleDownloadClick} links={links} />
-      <Footer settings={settings} />
+      <CallForPapersSection settings={STATIC_SETTINGS} deadlines={STATIC_DATES} />
+      <SpeakersSection speakers={STATIC_SPEAKERS} />
+      <PricingSection settings={STATIC_SETTINGS} />
+      <DownloadSection onDownloadClick={handleDownloadClick} links={STATIC_LINKS} />
+      <Footer settings={STATIC_SETTINGS} />
       <ComingSoonToast visible={toastVisible} onClose={() => setToastVisible(false)} />
     </div>
   );
