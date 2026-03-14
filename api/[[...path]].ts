@@ -9,15 +9,16 @@
  */
 import { config } from "dotenv";
 import path from "path";
-import { fileURLToPath } from "url";
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-config({ path: path.resolve(__dirname, "../.env") });
 
-let appPromise: Promise<typeof import("../artifacts/api-server/src/app").default> | null = null;
+config({ path: path.resolve(process.cwd(), ".env") });
 
-function getApp() {
+type ExpressApp = (req: import("http").IncomingMessage, res: import("http").ServerResponse, next?: (err?: Error) => void) => void;
+
+let appPromise: Promise<ExpressApp> | null = null;
+
+function getApp(): Promise<ExpressApp> {
   if (!appPromise) {
-    appPromise = import("../artifacts/api-server/src/app").then((m) => m.default);
+    appPromise = import("../artifacts/api-server/src/app.js").then((m) => m.default as ExpressApp);
   }
   return appPromise;
 }
