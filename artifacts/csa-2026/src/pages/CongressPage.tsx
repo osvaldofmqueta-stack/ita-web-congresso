@@ -90,6 +90,7 @@ function ComingSoonToast({
 const NAV_LINKS = [
   { label: "Início", href: "inicio" },
   { label: "Sobre", href: "sobre" },
+  { label: "Aplicação", href: "aplicacao" },
   { label: "Eixos Temáticos", href: "eixos" },
   { label: "Chamada de Artigos", href: "chamada" },
 ];
@@ -342,33 +343,128 @@ function HeroSection({
   );
 }
 
+/* ─── App showcase (phone mockup) — mesmo estilo visual do admin ───────────── */
+
+function AppSection({ onDownloadClick }: { onDownloadClick: () => void }) {
+  const [imgError, setImgError] = useState(false);
+  return (
+    <section
+      id="aplicacao"
+      className="py-24 relative overflow-hidden"
+      style={{ background: "linear-gradient(135deg, #0a1437 0%, #0f1e50 100%)" }}
+    >
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10"
+          style={{ background: "radial-gradient(circle, #c8a83c, transparent 70%)" }} />
+        <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10"
+          style={{ background: "radial-gradient(circle, #c8a83c, transparent 70%)" }} />
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="text-center lg:text-left order-2 lg:order-1">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-yellow-400/30 text-yellow-300 text-sm font-semibold mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+              Aplicação Móvel
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 leading-tight">
+              CSA 2026 na palma da sua mão
+            </h2>
+            <p className="text-white/70 text-lg leading-relaxed mb-6">
+              Inscrições, submissão de artigos e toda a informação do congresso num só lugar. Interface moderna, segura e fácil de usar.
+            </p>
+            <ul className="space-y-3 text-white/80 text-sm mb-8">
+              {["Login por email ou biometria", "Inscrições e pagamentos", "Submissão de apresentações", "Notificações e datas importantes"].map((item, i) => (
+                <li key={i} className="flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-full bg-yellow-400/20 flex items-center justify-center flex-shrink-0">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-yellow-300">
+                      <path d="M20 6L9 17l-5-5" />
+                    </svg>
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={onDownloadClick}
+              className="inline-flex items-center justify-center gap-3 px-8 py-4 rounded-2xl text-base font-bold text-[#0a1437] shadow-2xl hover:scale-[1.02] active:scale-[0.98] transition-transform"
+              style={{ background: "linear-gradient(135deg, #c8a83c, #f5d675)" }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/>
+              </svg>
+              Descarregar App
+            </button>
+          </div>
+
+          <div className="flex justify-center order-1 lg:order-2">
+            <div
+              className="relative w-full max-w-[280px] rounded-[2.5rem] p-2.5 shadow-2xl border-[14px] border-neutral-800 bg-neutral-900"
+              style={{ boxShadow: "0 25px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)" }}
+            >
+              <div className="rounded-[2rem] overflow-hidden bg-black aspect-[9/19] flex items-center justify-center">
+                {imgError ? (
+                  <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center" style={{ background: "linear-gradient(135deg, #0a1437 0%, #0f1e50 100%)" }}>
+                    <div className="w-14 h-14 rounded-2xl gold-gradient flex items-center justify-center">
+                      <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M17 1.01L7 1c-1.1 0-2 .9-2 2v18c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V3c0-1.1-.9-1.99-2-1.99zM17 19H7V5h10v14z"/></svg>
+                    </div>
+                    <p className="text-white/90 text-sm font-medium">CSA 2026</p>
+                    <p className="text-white/50 text-xs">Preview da aplicação</p>
+                  </div>
+                ) : (
+                  <img
+                    src="/app-preview.png"
+                    alt="Preview da aplicação CSA 2026 — ecrã de login"
+                    className="w-full h-full object-cover object-top"
+                    onError={() => setImgError(true)}
+                  />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── About ───────────────────────────────────────────────────────────────── */
 
 function AboutSection({ settings }: { settings: CongressSettings }) {
   return (
-    <section id="sobre" className="py-24 bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section
+      id="sobre"
+      className="py-24 relative overflow-hidden"
+      style={{ background: "linear-gradient(135deg, #0a1437 0%, #0f1e50 100%)" }}
+    >
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 left-0 w-96 h-96 rounded-full opacity-10"
+          style={{ background: "radial-gradient(circle, #c8a83c, transparent 70%)" }} />
+        <div className="absolute bottom-0 right-0 w-64 h-64 rounded-full opacity-10"
+          style={{ background: "radial-gradient(circle, #c8a83c, transparent 70%)" }} />
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-              <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-yellow-400/30 text-yellow-300 text-sm font-semibold mb-6">
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
               Sobre o Congresso
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-6 leading-tight">
+            <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6 leading-tight">
               Um Encontro de{" "}
-              <span className="text-primary relative">
+              <span className="text-yellow-300 relative">
                 Excelência Científica
                 <span className="absolute -bottom-1 left-0 right-0 h-0.5 gold-gradient rounded-full" />
               </span>{" "}
               e Inovação Agro-Alimentar
             </h2>
-            <p className="text-muted-foreground text-lg leading-relaxed mb-6">
-              O <strong className="text-foreground">{CONGRESS_NAME} ({CONGRESS_ABBR})</strong> é um evento científico de referência promovido pela{" "}
-              <strong className="text-foreground">{UNIVERSITY}</strong>, que reúne investigadores, docentes, estudantes e profissionais do sector agro-alimentar angolano.
+            <p className="text-white/80 text-lg leading-relaxed mb-6">
+              O <strong className="text-white">{CONGRESS_NAME} ({CONGRESS_ABBR})</strong> é um evento científico de referência promovido pela{" "}
+              <strong className="text-white">{UNIVERSITY}</strong>, que reúne investigadores, docentes, estudantes e profissionais do sector agro-alimentar angolano.
             </p>
-            <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              O congresso decorre no <strong className="text-foreground">{settings.congress_location || INSTITUTE}</strong>. As inscrições e submissão de apresentações realizam-se exclusivamente através da aplicação móvel, até{" "}
-              <strong className="text-foreground">{formatShortDate(settings.inscription_end_date)}</strong>. O evento decorre a <strong className="text-foreground">{formatShortDate(settings.congress_event_date)}</strong>.
+            <p className="text-white/80 text-lg leading-relaxed mb-8">
+              O congresso decorre no <strong className="text-white">{settings.congress_location || INSTITUTE}</strong>. As inscrições e submissão de apresentações realizam-se exclusivamente através da aplicação móvel, até{" "}
+              <strong className="text-white">{formatShortDate(settings.inscription_end_date)}</strong>. O evento decorre a <strong className="text-white">{formatShortDate(settings.congress_event_date)}</strong>.
             </p>
 
             <div className="grid grid-cols-2 gap-4">
@@ -378,17 +474,21 @@ function AboutSection({ settings }: { settings: CongressSettings }) {
                 { label: "Inscrições", value: `até ${formatShortDate(settings.inscription_end_date)}`, icon: "📅" },
                 { label: "Candidatura", value: "App Móvel", icon: "📱" },
               ].map((info) => (
-                <div key={info.label} className="p-4 rounded-2xl bg-card border border-border/60 card-hover">
+                <div
+                  key={info.label}
+                  className="p-4 rounded-2xl card-hover border border-white/10"
+                  style={{ background: "rgba(255,255,255,0.04)", backdropFilter: "blur(16px)" }}
+                >
                   <span className="text-2xl">{info.icon}</span>
-                  <p className="text-xs text-muted-foreground mt-2 uppercase tracking-wider font-medium">{info.label}</p>
-                  <p className="text-sm font-semibold text-foreground mt-1">{info.value}</p>
+                  <p className="text-xs text-white/50 mt-2 uppercase tracking-wider font-medium">{info.label}</p>
+                  <p className="text-sm font-semibold text-white mt-1">{info.value}</p>
                 </div>
               ))}
             </div>
           </div>
 
           <div className="relative">
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-white/10">
               <img src="/instituto2.jpeg" alt={INSTITUTE} className="w-full h-80 object-cover" />
               <div className="absolute inset-0 bg-gradient-to-t from-[#0a1437]/80 via-transparent to-transparent" />
               <div className="absolute bottom-6 left-6 right-6">
@@ -402,7 +502,9 @@ function AboutSection({ settings }: { settings: CongressSettings }) {
               </div>
             </div>
 
-            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-2xl bg-card border border-border shadow-xl flex items-center justify-center">
+            <div className="absolute -top-6 -right-6 w-24 h-24 rounded-2xl shadow-xl flex items-center justify-center border border-white/10"
+              style={{ background: "rgba(255,255,255,0.04)", backdropFilter: "blur(16px)" }}
+            >
               <img src="/urnm-logo.png" alt={UNIVERSITY_ABBR} className="w-16 h-16 object-contain" />
             </div>
             <div className="absolute -bottom-6 -left-6 glass-card rounded-2xl p-4 shadow-xl border border-yellow-400/20"
@@ -991,6 +1093,7 @@ export default function CongressPage() {
       <Navbar />
       <HeroSection onDownloadClick={handleDownloadClick} settings={settings} />
       <AboutSection settings={settings} />
+      <AppSection onDownloadClick={handleDownloadClick} />
       <ThematicAxesSection />
       <CallForPapersSection settings={settings} />
       <SpeakersSection speakers={speakers} />

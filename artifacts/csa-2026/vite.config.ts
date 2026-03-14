@@ -2,7 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
-import { copyFileSync, mkdirSync, readdirSync, existsSync } from "fs";
+import { copyFileSync, mkdirSync, readdirSync, readFileSync, existsSync } from "fs";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 function copyDirSync(src: string, dest: string) {
@@ -41,6 +41,36 @@ export default defineConfig({
         copyDirSync(staticDir, outDir);
       },
     },
+    {
+      name: "serve-static-dev",
+      configureServer(server) {
+        const staticDir = path.resolve(import.meta.dirname, "static");
+        server.middlewares.use((req, res, next) => {
+          if (req.url == null || !req.method || req.method !== "GET") return next();
+          const urlPath = req.url.split("?")[0];
+          if (!urlPath.startsWith("/") || urlPath.includes("..")) return next();
+          const filePath = path.join(staticDir, urlPath.slice(1));
+          if (!existsSync(filePath)) return next();
+          const ext = path.extname(filePath).toLowerCase();
+          const types: Record<string, string> = {
+            ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+            ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml", ".ico": "image/x-icon",
+          };
+          const contentType = types[ext];
+          if (contentType) {
+            try {
+              const data = readFileSync(filePath);
+              res.setHeader("Content-Type", contentType);
+              res.end(data);
+              return;
+            } catch {
+              return next();
+            }
+          }
+          next();
+        });
+      },
+    },
     runtimeErrorOverlay(),
     ...(process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined
       ? await (async () => {
@@ -67,10 +97,10 @@ export default defineConfig({
     dedupe: ["react", "react-dom"],
   },
   root: path.resolve(import.meta.dirname),
+  publicDir: path.resolve(import.meta.dirname, "static"),
   build: {
     outDir: path.resolve(import.meta.dirname, "dist"),
     emptyOutDir: true,
-    publicDir: path.resolve(import.meta.dirname, "static"),
   },
   server: {
     port,
