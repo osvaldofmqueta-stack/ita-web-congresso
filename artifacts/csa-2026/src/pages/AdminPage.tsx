@@ -17,6 +17,7 @@ import {
   deleteSpeaker,
   uploadSpeakerPhoto,
   getSpeakerPhotoUrl,
+  checkApiConnection,
   type CongressSettings,
   type AcceptedFormat,
   type ImportantDate,
@@ -137,6 +138,7 @@ function AdminSettings({ pin }: { pin: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetchSettings().then(setSettings);
@@ -146,11 +148,14 @@ function AdminSettings({ pin }: { pin: string }) {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setErrorMsg(null);
     const res = await updateSettings(settings, pin);
     setSaving(false);
     if (res.ok) {
       setSavedMsg("Configurações guardadas. Já estão publicadas no site.");
       setTimeout(() => setSavedMsg(null), 4000);
+    } else {
+      setErrorMsg(res.error ?? "Erro ao guardar. Certifique-se de que a API está a correr (pnpm dev:all).");
     }
   };
 
@@ -158,6 +163,12 @@ function AdminSettings({ pin }: { pin: string }) {
 
   return (
     <form onSubmit={handleSave} className="space-y-6">
+      {errorMsg && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-red-400/40 bg-red-500/20 text-red-200 text-sm">
+          <span className="flex-shrink-0">⚠️</span>
+          {errorMsg}
+        </div>
+      )}
       {savedMsg && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-green-400/40 bg-green-500/20 text-green-200 text-sm">
           <span className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/30 flex items-center justify-center">
@@ -306,6 +317,7 @@ function AdminLinks({ pin }: { pin: string }) {
   const [newLabel, setNewLabel] = useState("");
   const [newUrl, setNewUrl] = useState("");
   const [newActive, setNewActive] = useState(true);
+  const [linkErrorMsg, setLinkErrorMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -322,6 +334,7 @@ function AdminLinks({ pin }: { pin: string }) {
     e.preventDefault();
     if (!newUrl.trim()) return;
     setSaving(true);
+    setLinkErrorMsg(null);
     const res = await createLink(
       { platform: newPlatform, label: newLabel.trim() || "Descarregar", url: newUrl.trim(), active: newActive },
       pin
@@ -333,11 +346,14 @@ function AdminLinks({ pin }: { pin: string }) {
       setNewUrl("");
       setLinkSavedMsg("Link adicionado. Já está publicado no site.");
       setTimeout(() => setLinkSavedMsg(null), 4000);
+    } else {
+      setLinkErrorMsg(res.error ?? "Erro ao adicionar. Certifique-se de que a API está a correr (pnpm dev:all).");
     }
   };
 
   const handleUpdate = async (id: number, updates: { label?: string; url?: string; active?: boolean }) => {
     setSaving(true);
+    setLinkErrorMsg(null);
     const res = await updateLink(id, updates, pin);
     setSaving(false);
     if (res.ok && res.link) {
@@ -345,6 +361,8 @@ function AdminLinks({ pin }: { pin: string }) {
       setEditingId(null);
       setLinkSavedMsg("Link guardado. Já está publicado no site.");
       setTimeout(() => setLinkSavedMsg(null), 4000);
+    } else {
+      setLinkErrorMsg(res.error ?? "Erro ao guardar.");
     }
   };
 
@@ -360,6 +378,12 @@ function AdminLinks({ pin }: { pin: string }) {
 
   return (
     <div className="space-y-6">
+      {linkErrorMsg && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-red-400/40 bg-red-500/20 text-red-200 text-sm">
+          <span className="flex-shrink-0">⚠️</span>
+          {linkErrorMsg}
+        </div>
+      )}
       {linkSavedMsg && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-green-400/40 bg-green-500/20 text-green-200 text-sm">
           <span className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/30 flex items-center justify-center">
@@ -471,6 +495,7 @@ function AdminDates({ pin }: { pin: string }) {
   const [newLabel, setNewLabel] = useState("");
   const [newDate, setNewDate] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [dateErrorMsg, setDateErrorMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -487,6 +512,7 @@ function AdminDates({ pin }: { pin: string }) {
     e.preventDefault();
     if (!newLabel.trim() || !newDate.trim()) return;
     setSaving(true);
+    setDateErrorMsg(null);
     const res = await createDate({ label: newLabel.trim(), date: newDate.trim() }, pin);
     setSaving(false);
     if (res.ok && res.date) {
@@ -496,11 +522,14 @@ function AdminDates({ pin }: { pin: string }) {
       setShowForm(false);
       setDateSavedMsg("Data adicionada. Já está publicada no site.");
       setTimeout(() => setDateSavedMsg(null), 4000);
+    } else {
+      setDateErrorMsg(res.error ?? "Erro ao adicionar. Certifique-se de que a API está a correr (pnpm dev:all).");
     }
   };
 
   const handleUpdate = async (id: number, updates: { label?: string; date?: string; done?: boolean }) => {
     setSaving(true);
+    setDateErrorMsg(null);
     const res = await updateDate(id, updates, pin);
     setSaving(false);
     if (res.ok && res.date) {
@@ -508,6 +537,8 @@ function AdminDates({ pin }: { pin: string }) {
       setEditingId(null);
       setDateSavedMsg("Alterações guardadas. Já estão publicadas no site.");
       setTimeout(() => setDateSavedMsg(null), 4000);
+    } else {
+      setDateErrorMsg(res.error ?? "Erro ao guardar.");
     }
   };
 
@@ -523,6 +554,12 @@ function AdminDates({ pin }: { pin: string }) {
 
   return (
     <div className="space-y-4">
+      {dateErrorMsg && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-red-400/40 bg-red-500/20 text-red-200 text-sm">
+          <span className="flex-shrink-0">⚠️</span>
+          {dateErrorMsg}
+        </div>
+      )}
       {dateSavedMsg && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-green-400/40 bg-green-500/20 text-green-200 text-sm">
           <span className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/30 flex items-center justify-center">
@@ -681,8 +718,11 @@ function AdminSpeakers({ pin }: { pin: string }) {
     setEditingId(null);
   };
 
+  const [speakerErrorMsg, setSpeakerErrorMsg] = useState<string | null>(null);
+
   const showSaved = (msg: string) => {
     setSavedMessage(msg);
+    setSpeakerErrorMsg(null);
     setTimeout(() => setSavedMessage(null), 4000);
   };
 
@@ -690,6 +730,7 @@ function AdminSpeakers({ pin }: { pin: string }) {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSaving(true);
+    setSpeakerErrorMsg(null);
     const res = await createSpeaker(
       {
         name: form.name.trim(),
@@ -710,11 +751,14 @@ function AdminSpeakers({ pin }: { pin: string }) {
       setSpeakers((prev) => [...prev, res.speaker!].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id));
       resetForm();
       showSaved("Palestrante adicionado e já publicado no site.");
+    } else {
+      setSpeakerErrorMsg(res.error ?? "Erro ao adicionar. Certifique-se de que a API está a correr (pnpm dev:all).");
     }
   };
 
   const handleUpdate = async (id: number, s: Speaker) => {
     setSaving(true);
+    setSpeakerErrorMsg(null);
     const res = await updateSpeaker(
       id,
       {
@@ -740,6 +784,8 @@ function AdminSpeakers({ pin }: { pin: string }) {
         setEditingPhotoPreviewUrl((prev) => { const next = { ...prev }; delete next[id]; return next; });
       }
       showSaved("Alterações guardadas e já publicadas no site.");
+    } else {
+      setSpeakerErrorMsg(res.error ?? "Erro ao guardar.");
     }
   };
 
@@ -791,6 +837,12 @@ function AdminSpeakers({ pin }: { pin: string }) {
 
   return (
     <div className="space-y-6">
+      {speakerErrorMsg && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border border-red-400/40 bg-red-500/20 text-red-200 text-sm">
+          <span className="flex-shrink-0">⚠️</span>
+          {speakerErrorMsg}
+        </div>
+      )}
       {savedMessage && (
         <div
           className="flex items-center gap-3 px-4 py-3 rounded-xl border border-green-400/40 bg-green-500/20 text-green-200 text-sm"
@@ -1078,9 +1130,20 @@ function AdminSpeakers({ pin }: { pin: string }) {
 
 function AdminLayout({ pin, onLogout }: { pin: string; onLogout: () => void }) {
   const [tab, setTab] = useState<Tab>("Configurações");
+  const [apiConnected, setApiConnected] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    checkApiConnection().then(setApiConnected);
+  }, [tab]);
 
   return (
     <div className="min-h-screen bg-[#0a1437] text-white">
+      {apiConnected === false && (
+        <div className="bg-amber-500/20 border-b border-amber-400/40 px-4 py-3 text-amber-100 text-sm flex items-center justify-center gap-2 flex-wrap">
+          <span>⚠️ API indisponível.</span>
+          <span>Para as alterações reflectirem no site, execute <code className="px-1.5 py-0.5 rounded bg-black/20 font-mono">pnpm dev:all</code> na raiz do projeto.</span>
+        </div>
+      )}
       <header className="border-b border-white/10 bg-[#0a1437]/95 backdrop-blur sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-3">

@@ -15,6 +15,16 @@ export function getSpeakerPhotoUrl(photoUrl: string | null | undefined): string 
   return UPLOADS_BASE + photoUrl;
 }
 
+/** Verifica se a API está disponível (para avisar no admin). */
+export async function checkApiConnection(): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_BASE}/csa/settings`, { method: "GET" });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export interface AcceptedFormat {
   icon: string;
   title: string;
