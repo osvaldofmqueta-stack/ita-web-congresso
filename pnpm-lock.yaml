@@ -145,13 +145,14 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      dotenv:
+        specifier: ^16.4.7
+        version: 16.6.1
     devDependencies:
       '@rollup/rollup-win32-x64-msvc':
         specifier: ^4.59.0
         version: 4.59.0
-      dotenv:
-        specifier: ^16.4.7
-        version: 16.6.1
       prettier:
         specifier: ^3.8.1
         version: 3.8.1
