@@ -18,6 +18,7 @@ import {
   uploadSpeakerPhoto,
   getSpeakerPhotoUrl,
   type CongressSettings,
+  type AcceptedFormat,
   type ImportantDate,
   type AppLink,
   type Speaker,
@@ -120,11 +121,18 @@ function LoginScreen({ onLogin }: { onLogin: (pin: string) => void }) {
 
 /* ─── Configurações (data do congresso, local) ────────────────────────────── */
 
+const DEFAULT_FORMATS: AcceptedFormat[] = [
+  { icon: "📄", title: "Artigo Completo", desc: "8 a 12 páginas, revisão por pares duplo-cego", color: "border-yellow-400/20" },
+  { icon: "📝", title: "Resumo Alargado", desc: "2 a 4 páginas, para comunicações orais", color: "border-blue-400/20" },
+  { icon: "🖼️", title: "Poster Científico", desc: "Formato A0, apresentação em sessão dedicada", color: "border-green-400/20" },
+];
+
 function AdminSettings({ pin }: { pin: string }) {
   const [settings, setSettings] = useState<CongressSettings>({
     inscription_end_date: "2026-04-30",
     congress_event_date: "2026-05-15",
     congress_location: "Instituto de Tecnologia Agro-Alimentar, URNM, Angola",
+    accepted_formats: DEFAULT_FORMATS,
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -193,6 +201,94 @@ function AdminSettings({ pin }: { pin: string }) {
         <button type="submit" disabled={saving} className="px-4 py-2 rounded-lg text-sm font-medium text-[#0a1437] bg-[#c8a83c]">
           {saving ? "A guardar..." : "Guardar configurações"}
         </button>
+      </div>
+
+      <div className="p-4 rounded-xl border border-white/10 bg-white/5 space-y-4">
+        <h3 className="font-semibold text-yellow-300">Formatos Aceites</h3>
+        <p className="text-white/60 text-xs">Os formatos que aparecem na secção Chamada para Artigos do site.</p>
+        <div className="space-y-3">
+          {(settings.accepted_formats ?? DEFAULT_FORMATS).map((f, idx) => (
+            <div key={idx} className="flex flex-wrap items-center gap-2 p-3 rounded-lg bg-white/5 border border-white/10">
+              <input
+                value={f.icon}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    accepted_formats: (s.accepted_formats ?? DEFAULT_FORMATS).map((x, i) =>
+                      i === idx ? { ...x, icon: e.target.value } : x
+                    ),
+                  }))
+                }
+                className="w-12 px-2 py-1.5 rounded bg-white/10 border border-white/20 text-white text-center"
+                placeholder="📄"
+              />
+              <input
+                value={f.title}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    accepted_formats: (s.accepted_formats ?? DEFAULT_FORMATS).map((x, i) =>
+                      i === idx ? { ...x, title: e.target.value } : x
+                    ),
+                  }))
+                }
+                className="flex-1 min-w-[140px] px-3 py-1.5 rounded bg-white/10 border border-white/20 text-white text-sm"
+                placeholder="Título"
+              />
+              <input
+                value={f.desc}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    accepted_formats: (s.accepted_formats ?? DEFAULT_FORMATS).map((x, i) =>
+                      i === idx ? { ...x, desc: e.target.value } : x
+                    ),
+                  }))
+                }
+                className="flex-1 min-w-[180px] px-3 py-1.5 rounded bg-white/10 border border-white/20 text-white text-sm"
+                placeholder="Descrição"
+              />
+              <input
+                value={f.color}
+                onChange={(e) =>
+                  setSettings((s) => ({
+                    ...s,
+                    accepted_formats: (s.accepted_formats ?? DEFAULT_FORMATS).map((x, i) =>
+                      i === idx ? { ...x, color: e.target.value } : x
+                    ),
+                  }))
+                }
+                className="w-32 px-2 py-1.5 rounded bg-white/10 border border-white/20 text-white/70 text-xs"
+                placeholder="border-yellow-400/20"
+              />
+              <button
+                type="button"
+                onClick={() =>
+                  setSettings((s) => ({
+                    ...s,
+                    accepted_formats: (s.accepted_formats ?? DEFAULT_FORMATS).filter((_, i) => i !== idx),
+                  }))
+                }
+                className="px-2 py-1 text-xs text-red-300 hover:bg-red-500/20 rounded"
+              >
+                Remover
+              </button>
+            </div>
+          ))}
+        </div>
+        <button
+          type="button"
+          onClick={() =>
+            setSettings((s) => ({
+              ...s,
+              accepted_formats: [...(s.accepted_formats ?? DEFAULT_FORMATS), { icon: "📋", title: "Novo formato", desc: "Descrição", color: "border-gray-400/20" }],
+            }))
+          }
+          className="text-sm text-yellow-300 hover:underline"
+        >
+          + Adicionar formato
+        </button>
+        <p className="text-white/50 text-xs">Guardar as configurações para publicar no site.</p>
       </div>
     </form>
   );
@@ -655,8 +751,8 @@ function AdminSpeakers({ pin }: { pin: string }) {
     if (res.ok) setSpeakers((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const handlePhotoUpload = async (file: File, speakerId: number | "new") => {
-    if (!file.type.startsWith("image/")) return;
+  const setPreviewFromFile = (file: File, speakerId: number | "new"): string | null => {
+    if (!file.type.startsWith("image/")) return null;
     const objectUrl = URL.createObjectURL(file);
     if (speakerId === "new") {
       setNewPhotoPreviewUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return objectUrl; });
@@ -666,23 +762,28 @@ function AdminSpeakers({ pin }: { pin: string }) {
         return { ...prev, [speakerId]: objectUrl };
       });
     }
+    return objectUrl;
+  };
+
+  const handlePhotoUpload = async (file: File, speakerId: number | "new") => {
+    if (!file.type.startsWith("image/")) return;
+    const objectUrl = setPreviewFromFile(file, speakerId);
     setUploadingPhoto(speakerId);
     const res = await uploadSpeakerPhoto(file, pin);
     setUploadingPhoto(null);
     if (res.ok && res.url) {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
       if (speakerId === "new") {
-        URL.revokeObjectURL(objectUrl);
         setNewPhotoPreviewUrl(null);
-        setForm((f) => ({ ...f, photoUrl: res.url! }));
+        setForm((f) => ({ ...f, photoUrl: res.url ?? "" }));
       } else {
-        URL.revokeObjectURL(objectUrl);
         setEditingPhotoPreviewUrl((prev) => { const next = { ...prev }; delete next[speakerId]; return next; });
-        setSpeakers((prev) => prev.map((s) => (s.id === speakerId ? { ...s, photoUrl: res.url } : s)));
+        setSpeakers((prev) => prev.map((s) => (s.id === speakerId ? { ...s, photoUrl: res.url ?? null } : s)));
       }
     } else {
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
       if (speakerId === "new") setNewPhotoPreviewUrl(null);
       else setEditingPhotoPreviewUrl((prev) => { const next = { ...prev }; delete next[speakerId]; return next; });
-      URL.revokeObjectURL(objectUrl);
     }
   };
 
@@ -716,17 +817,20 @@ function AdminSpeakers({ pin }: { pin: string }) {
                 )}
                 {editingId === s.id && (
                   <label className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 hover:opacity-100 transition-opacity cursor-pointer text-white text-xs">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      disabled={uploadingPhoto !== null}
-                      onChange={(e) => {
-                        const f = e.target.files?.[0];
-                        if (f) handlePhotoUpload(f, s.id);
-                        e.target.value = "";
-                      }}
-                    />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={uploadingPhoto !== null}
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) {
+                        setPreviewFromFile(f, s.id);
+                        handlePhotoUpload(f, s.id);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
                     {uploadingPhoto === s.id ? "A subir..." : "Alterar foto"}
                   </label>
                 )}
@@ -767,7 +871,10 @@ function AdminSpeakers({ pin }: { pin: string }) {
                         disabled={uploadingPhoto !== null}
                         onChange={(e) => {
                           const f = e.target.files?.[0];
-                          if (f) handlePhotoUpload(f, s.id);
+                          if (f) {
+                            setPreviewFromFile(f, s.id);
+                            handlePhotoUpload(f, s.id);
+                          }
                           e.target.value = "";
                         }}
                       />
@@ -897,7 +1004,10 @@ function AdminSpeakers({ pin }: { pin: string }) {
                     disabled={uploadingPhoto !== null}
                     onChange={(e) => {
                       const f = e.target.files?.[0];
-                      if (f) handlePhotoUpload(f, "new");
+                      if (f) {
+                        setPreviewFromFile(f, "new");
+                        handlePhotoUpload(f, "new");
+                      }
                       e.target.value = "";
                     }}
                   />

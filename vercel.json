@@ -4,7 +4,8 @@
   "installCommand": "pnpm install",
   "framework": null,
   "env": {
-    "BASE_PATH": "/"
+    "BASE_PATH": "/",
+    "NODE_ENV": "production"
   },
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }

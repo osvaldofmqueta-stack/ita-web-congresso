@@ -15,10 +15,18 @@ export function getSpeakerPhotoUrl(photoUrl: string | null | undefined): string 
   return UPLOADS_BASE + photoUrl;
 }
 
+export interface AcceptedFormat {
+  icon: string;
+  title: string;
+  desc: string;
+  color: string;
+}
+
 export interface CongressSettings {
   inscription_end_date: string;
   congress_event_date: string;
   congress_location: string;
+  accepted_formats?: AcceptedFormat[];
 }
 
 export interface AppLink {
@@ -64,19 +72,40 @@ const DEFAULT_SETTINGS: CongressSettings = {
   congress_location: "Instituto de Tecnologia Agro-Alimentar, URNM, Angola",
 };
 
+const DEFAULT_ACCEPTED_FORMATS: AcceptedFormat[] = [
+  { icon: "📄", title: "Artigo Completo", desc: "8 a 12 páginas, revisão por pares duplo-cego", color: "border-yellow-400/20" },
+  { icon: "📝", title: "Resumo Alargado", desc: "2 a 4 páginas, para comunicações orais", color: "border-blue-400/20" },
+  { icon: "🖼️", title: "Poster Científico", desc: "Formato A0, apresentação em sessão dedicada", color: "border-green-400/20" },
+];
+
+function parseAcceptedFormats(val: unknown): AcceptedFormat[] {
+  if (!val) return DEFAULT_ACCEPTED_FORMATS;
+  try {
+    const arr = typeof val === "string" ? JSON.parse(val) : val;
+    if (!Array.isArray(arr)) return DEFAULT_ACCEPTED_FORMATS;
+    return arr.filter(
+      (x): x is AcceptedFormat =>
+        x && typeof x.icon === "string" && typeof x.title === "string" && typeof x.desc === "string"
+    );
+  } catch {
+    return DEFAULT_ACCEPTED_FORMATS;
+  }
+}
+
 export async function fetchSettings(): Promise<CongressSettings> {
   try {
     const res = await fetch(`${API_BASE}/csa/settings`);
-    if (!res.ok) return DEFAULT_SETTINGS;
+    if (!res.ok) return { ...DEFAULT_SETTINGS, accepted_formats: DEFAULT_ACCEPTED_FORMATS };
     const data = await res.json();
     const s = data.settings ?? {};
     return {
       inscription_end_date: s.inscription_end_date ?? DEFAULT_SETTINGS.inscription_end_date,
       congress_event_date: s.congress_event_date ?? DEFAULT_SETTINGS.congress_event_date,
       congress_location: s.congress_location ?? DEFAULT_SETTINGS.congress_location,
+      accepted_formats: parseAcceptedFormats(s.accepted_formats),
     };
   } catch {
-    return DEFAULT_SETTINGS;
+    return { ...DEFAULT_SETTINGS, accepted_formats: DEFAULT_ACCEPTED_FORMATS };
   }
 }
 
@@ -212,10 +241,15 @@ export async function deleteDate(id: number, pin: string): Promise<{ ok: boolean
 
 export async function updateSettings(settings: Partial<CongressSettings>, pin: string): Promise<{ ok: boolean; error?: string }> {
   try {
+    const payload: Record<string, string> = {};
+    if (settings.inscription_end_date != null) payload.inscription_end_date = settings.inscription_end_date;
+    if (settings.congress_event_date != null) payload.congress_event_date = settings.congress_event_date;
+    if (settings.congress_location != null) payload.congress_location = settings.congress_location;
+    if (settings.accepted_formats != null) payload.accepted_formats = JSON.stringify(settings.accepted_formats);
     const res = await fetch(`${API_BASE}/csa/settings`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", "x-admin-pin": pin },
-      body: JSON.stringify({ settings }),
+      body: JSON.stringify({ settings: payload }),
     });
     return await res.json();
   } catch {

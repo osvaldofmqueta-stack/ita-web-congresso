@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { fetchSettings, fetchLinks, fetchDates, fetchSpeakers, getSpeakerPhotoUrl, type CongressSettings, type AppLink, type ImportantDate, type Speaker } from "@/lib/api";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 const CONGRESS_NAME = "Congresso do Sector Agro-Alimentar";
 const CONGRESS_ABBR = "CSA 2026";
@@ -53,6 +54,7 @@ function ComingSoonToast({
       const t = setTimeout(onClose, 3500);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [visible, onClose]);
 
   return (
@@ -365,7 +367,7 @@ function AboutSection({ settings }: { settings: CongressSettings }) {
               <strong className="text-foreground">{UNIVERSITY}</strong>, que reúne investigadores, docentes, estudantes e profissionais do sector agro-alimentar angolano.
             </p>
             <p className="text-muted-foreground text-lg leading-relaxed mb-8">
-              O congresso decorre no <strong className="text-foreground">{settings.congress_location || INSTITUTE}</strong>. As inscrições e submissão de trabalhos realizam-se exclusivamente através da aplicação móvel, até{" "}
+              O congresso decorre no <strong className="text-foreground">{settings.congress_location || INSTITUTE}</strong>. As inscrições e submissão de apresentações realizam-se exclusivamente através da aplicação móvel, até{" "}
               <strong className="text-foreground">{formatShortDate(settings.inscription_end_date)}</strong>. O evento decorre a <strong className="text-foreground">{formatShortDate(settings.congress_event_date)}</strong>.
             </p>
 
@@ -476,7 +478,7 @@ function ThematicAxesSection() {
 
 /* ─── Call for Papers ─────────────────────────────────────────────────────── */
 
-function CallForPapersSection() {
+function CallForPapersSection({ settings }: { settings: CongressSettings }) {
   const [deadlines, setDeadlines] = useState<ImportantDate[]>([]);
   const [loadingDates, setLoadingDates] = useState(true);
 
@@ -488,23 +490,35 @@ function CallForPapersSection() {
     });
   }, []);
 
-  const formats = [
-    { icon: "📄", title: "Artigo Completo", desc: "8 a 12 páginas, revisão por pares duplo-cego", color: "border-yellow-400/20" },
-    { icon: "📝", title: "Resumo Alargado", desc: "2 a 4 páginas, para comunicações orais", color: "border-blue-400/20" },
-    { icon: "🖼️", title: "Poster Científico", desc: "Formato A0, apresentação em sessão dedicada", color: "border-green-400/20" },
-  ];
+  const formats = settings.accepted_formats && settings.accepted_formats.length > 0
+    ? settings.accepted_formats
+    : [
+        { icon: "📄", title: "Artigo Completo", desc: "8 a 12 páginas, revisão por pares duplo-cego", color: "border-yellow-400/20" },
+        { icon: "📝", title: "Resumo Alargado", desc: "2 a 4 páginas, para comunicações orais", color: "border-blue-400/20" },
+        { icon: "🖼️", title: "Poster Científico", desc: "Formato A0, apresentação em sessão dedicada", color: "border-green-400/20" },
+      ];
 
   return (
-    <section id="chamada" className="py-24 bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section
+      id="chamada"
+      className="py-24 relative overflow-hidden"
+      style={{ background: "linear-gradient(135deg, #0a1437 0%, #1a2d6e 50%, #0a1437 100%)" }}
+    >
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-0 right-0 w-96 h-96 rounded-full opacity-10"
+          style={{ background: "radial-gradient(circle, #c8a83c, transparent 70%)" }} />
+        <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full opacity-10"
+          style={{ background: "radial-gradient(circle, #c8a83c, transparent 70%)" }} />
+      </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-6">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            Submissão de Trabalhos
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-yellow-400/30 text-yellow-300 text-sm font-semibold mb-6">
+            <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />
+            Submissão de apresentação
           </div>
-          <h2 className="text-3xl sm:text-4xl font-bold text-foreground mb-4">Chamada para Artigos</h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Convidamos investigadores, docentes e profissionais do sector agro-alimentar a submeterem os seus trabalhos científicos
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">Chamada para Artigos</h2>
+          <p className="text-white/60 text-lg max-w-2xl mx-auto">
+            Convidamos investigadores, docentes e profissionais do sector agro-alimentar a submeterem as suas apresentações
           </p>
           <div className="section-divider max-w-48 mx-auto mt-6" />
         </div>
@@ -512,19 +526,19 @@ function CallForPapersSection() {
         <div className="grid lg:grid-cols-2 gap-12 items-start">
           {/* Timeline — apenas dados configurados no admin */}
           <div>
-            <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <span className="text-2xl">📅</span> Datas Importantes
             </h3>
             {loadingDates ? (
-              <p className="text-muted-foreground text-sm">A carregar datas...</p>
+              <p className="text-white/60 text-sm">A carregar datas...</p>
             ) : deadlines.length === 0 ? (
-              <p className="text-muted-foreground text-sm py-4">As datas importantes serão anunciadas em breve. Configure-as na área administrativa.</p>
+              <p className="text-white/60 text-sm py-4">As datas importantes serão anunciadas em breve. Configure-as na área administrativa.</p>
             ) : (
               <div className="space-y-4">
                 {deadlines.map((d, i) => (
                   <div key={d.id} className="flex items-center gap-4">
                     <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-                      d.done ? "bg-green-100 text-green-600" : "bg-primary/10 text-primary"
+                      d.done ? "bg-green-500/20 text-green-300" : "bg-yellow-400/20 text-yellow-300"
                     }`}>
                       {d.done ? (
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
@@ -533,13 +547,13 @@ function CallForPapersSection() {
                       )}
                     </div>
                     <div className={`flex-1 flex items-center justify-between p-3.5 rounded-xl border ${
-                      d.done ? "bg-green-50 border-green-200" : "bg-card border-border"
+                      d.done ? "bg-green-500/10 border-green-400/30" : "glass-card border-white/10"
                     }`}>
-                      <span className={`text-sm font-medium ${d.done ? "text-green-700 line-through opacity-70" : "text-foreground"}`}>
+                      <span className={`text-sm font-medium ${d.done ? "text-green-300 line-through opacity-70" : "text-white"}`}>
                         {d.label}
                       </span>
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                        d.done ? "bg-green-100 text-green-700" : "bg-primary/10 text-primary"
+                        d.done ? "bg-green-500/20 text-green-300" : "bg-yellow-400/20 text-yellow-300"
                       }`}>
                         {d.date}
                       </span>
@@ -553,26 +567,26 @@ function CallForPapersSection() {
           {/* Formats & Topics */}
           <div className="space-y-8">
             <div>
-              <h3 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
+              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
                 <span className="text-2xl">📋</span> Formatos Aceites
               </h3>
               <div className="space-y-4">
                 {formats.map((f) => (
-                  <div key={f.title} className={`flex items-start gap-4 p-4 rounded-2xl border bg-card ${f.color}`}>
+                  <div key={f.title} className={`flex items-start gap-4 p-4 rounded-2xl border glass-card ${f.color} border-white/10`}>
                     <div className="text-2xl flex-shrink-0">{f.icon}</div>
                     <div>
-                      <p className="font-semibold text-foreground text-sm">{f.title}</p>
-                      <p className="text-muted-foreground text-xs mt-0.5">{f.desc}</p>
+                      <p className="font-semibold text-white text-sm">{f.title}</p>
+                      <p className="text-white/65 text-xs mt-0.5">{f.desc}</p>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="p-5 rounded-2xl bg-primary/5 border border-primary/15">
-              <p className="text-sm font-semibold text-foreground mb-2">🌍 Língua de Submissão</p>
-              <p className="text-muted-foreground text-sm">
-                Os trabalhos podem ser submetidos em <strong>Português</strong> ou <strong>Inglês</strong>.
+            <div className="p-5 rounded-2xl glass-card border border-yellow-400/20">
+              <p className="text-sm font-semibold text-yellow-300 mb-2">🌍 Língua de Submissão</p>
+              <p className="text-white/70 text-sm">
+                Os trabalhos podem ser submetidos em <strong className="text-white">Português</strong>, <strong className="text-white">Inglês</strong> ou <strong className="text-white">Francês</strong>.
                 As submissões são realizadas exclusivamente através da aplicação móvel CSA 2026.
               </p>
             </div>
@@ -610,45 +624,53 @@ function SpeakersSection({ speakers }: { speakers: Speaker[] }) {
           <div className="section-divider max-w-48 mx-auto mt-6" />
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {speakers.length === 0 ? (
-            <p className="col-span-full text-center text-white/40 text-sm py-8">
-              A lista completa de palestrantes será publicada brevemente
-            </p>
-          ) : (
-            speakers.map((s) => (
-              <div key={s.id} className="glass-card rounded-3xl p-6 text-center card-hover border border-white/10 hover:border-yellow-400/25">
-                <div
-                  className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl font-bold overflow-hidden bg-white/5"
-                  style={{ border: "2px solid rgba(200,168,60,0.2)" }}
-                >
-                  {s.photoUrl ? (
-                    <img src={getSpeakerPhotoUrl(s.photoUrl)} alt={s.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-yellow-300 text-2xl">{s.initials || "?"}</span>
-                  )}
-                </div>
-                <p className="text-white/40 text-xs mb-1">{s.country}</p>
-                {s.academicDegree && (
-                  <p className="text-yellow-400/80 text-xs mb-0.5">{s.academicDegree}</p>
-                )}
-                <h4 className="text-white font-bold text-sm mb-1">{s.name}</h4>
-                <p className="text-yellow-300/70 text-xs font-medium mb-2">{s.role}</p>
-                {s.category && (
-                  <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs mb-1">
-                    {s.category}
-                  </span>
-                )}
-                <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 text-xs">
-                  {s.area}
-                </span>
-                {s.origin && (
-                  <p className="text-white/40 text-xs mt-2 uppercase tracking-wider">{s.origin}</p>
-                )}
-              </div>
-            ))
-          )}
-        </div>
+        {speakers.length === 0 ? (
+          <p className="text-center text-white/40 text-sm py-8">
+            A lista completa de palestrantes será publicada brevemente
+          </p>
+        ) : (
+          <div className="relative px-12">
+            <Carousel opts={{ align: "start", loop: true }} className="w-full">
+              <CarouselContent className="-ml-4">
+                {speakers.map((s) => (
+                  <CarouselItem key={s.id} className="pl-4 basis-full sm:basis-1/2 lg:basis-1/4">
+                    <div className="glass-card rounded-3xl p-6 text-center card-hover border border-white/10 hover:border-yellow-400/25 h-full">
+                      <div
+                        className="w-20 h-20 rounded-2xl mx-auto mb-4 flex items-center justify-center text-3xl font-bold overflow-hidden bg-white/5"
+                        style={{ border: "2px solid rgba(200,168,60,0.2)" }}
+                      >
+                        {s.photoUrl ? (
+                          <img src={getSpeakerPhotoUrl(s.photoUrl)} alt={s.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-yellow-300 text-2xl">{s.initials || "?"}</span>
+                        )}
+                      </div>
+                      <p className="text-white/40 text-xs mb-1">{s.country}</p>
+                      {s.academicDegree && (
+                        <p className="text-yellow-400/80 text-xs mb-0.5">{s.academicDegree}</p>
+                      )}
+                      <h4 className="text-white font-bold text-sm mb-1">{s.name}</h4>
+                      <p className="text-yellow-300/70 text-xs font-medium mb-2">{s.role}</p>
+                      {s.category && (
+                        <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/60 text-xs mb-1">
+                          {s.category}
+                        </span>
+                      )}
+                      <span className="inline-block px-2.5 py-1 rounded-full bg-white/5 border border-white/10 text-white/50 text-xs">
+                        {s.area}
+                      </span>
+                      {s.origin && (
+                        <p className="text-white/40 text-xs mt-2 uppercase tracking-wider">{s.origin}</p>
+                      )}
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious className="-left-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white" />
+              <CarouselNext className="-right-2 border-white/20 bg-white/10 text-white hover:bg-white/20 hover:text-white" />
+            </Carousel>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -739,7 +761,7 @@ function PricingSection() {
               <path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
             </svg>
             <p className="text-sm text-muted-foreground">
-              As inscrições e submissões de trabalhos são realizadas exclusivamente através da{" "}
+              As inscrições e submissões de apresentações são realizadas exclusivamente através da{" "}
               <strong className="text-foreground">aplicação móvel CSA 2026</strong>. Descarregue a app, registe-se e complete a sua candidatura.
             </p>
           </div>
@@ -970,7 +992,7 @@ export default function CongressPage() {
       <HeroSection onDownloadClick={handleDownloadClick} settings={settings} />
       <AboutSection settings={settings} />
       <ThematicAxesSection />
-      <CallForPapersSection />
+      <CallForPapersSection settings={settings} />
       <SpeakersSection speakers={speakers} />
       <PricingSection />
       <DownloadSection onDownloadClick={handleDownloadClick} links={links} />
