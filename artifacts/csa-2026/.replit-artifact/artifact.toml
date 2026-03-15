@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "CSA 2026 - Congresso do Sector Agro-Alimentar"
+title = "CSA 2026 - Congresso de Alimento 2026"
 version = "1.0.0"
 id = "artifacts/csa-2026"
 router = "path"

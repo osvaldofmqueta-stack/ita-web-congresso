@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 config({ path: path.resolve(__dirname, "../../.env") });
 
 const SETTINGS: Record<string, string> = {
-  congress_name: "Congresso do Sector Agro-Alimentar",
+  congress_name: "Congresso de Alimento 2026",
   congress_abbr: "CSA 2026",
   institution: "Instituto de Tecnologia Agro-Alimentar",
   university: "Universidade Rainha Njinga a Mbande",

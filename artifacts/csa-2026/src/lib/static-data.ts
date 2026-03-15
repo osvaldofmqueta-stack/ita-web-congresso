@@ -70,7 +70,7 @@ export interface Speaker {
 }
 
 export const STATIC_SETTINGS: CongressSettings = {
-  congress_name: "Congresso do Sector Agro-Alimentar",
+  congress_name: "Congresso de Alimento 2026",
   congress_abbr: "CSA 2026",
   institution: "Instituto de Tecnologia Agro-Alimentar",
   university: "Universidade Rainha Njinga a Mbande",
